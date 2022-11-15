@@ -44,7 +44,7 @@ class TemporalProfiler:
         """
         query = PQL()
 
-        query.add(PQLColumn(name="case ID", query=f"""TARGET("{activity_table}"."{case_col}")"""))
+        query.add(PQLColumn(name=case_col, query=f"""TARGET("{activity_table}"."{case_col}")"""))
         query.add(PQLColumn(name="source", query=f"""SOURCE("{activity_table}"."{act_col}",
             ANY_OCCURRENCE[] TO ANY_OCCURRENCE[])"""))
         query.add(PQLColumn(name="target", query=f"""TARGET("{activity_table}"."{act_col}")"""))
@@ -73,26 +73,26 @@ class TemporalProfiler:
             """))
 
         # compute z-score of duration
-        query.add(PQLColumn(name="z.score", query="""
-        case when PU_STDEV ( DOMAIN_TABLE (SOURCE("receipt_xes"."concept:name"), 
-                                TARGET("receipt_xes"."concept:name")),
-                                MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp",
+        query.add(PQLColumn(name="z.score", query=f"""
+        case when PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"), 
+                                TARGET("{activity_table}"."{act_col}")),
+                                MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
         ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
-        TARGET("receipt_xes"."time:timestamp")) ) = 0 then 0 else
+        TARGET("{activity_table}"."{timestamp}")) ) = 0 then 0 else
 
-         (MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp"),
-         TARGET("receipt_xes"."time:timestamp"))
-         - PU_AVG ( DOMAIN_TABLE (SOURCE("receipt_xes"."concept:name"), 
-                                TARGET("receipt_xes"."concept:name")),
-                                MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp",
+         (MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}"),
+         TARGET("{activity_table}"."{timestamp}"))
+         - PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"), 
+                                TARGET("{activity_table}"."{act_col}")),
+                                MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
         ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
-        TARGET("receipt_xes"."time:timestamp")) ) )
+        TARGET("{activity_table}"."{timestamp}")) ) )
         /
-        PU_STDEV ( DOMAIN_TABLE (SOURCE("receipt_xes"."concept:name"), 
-                                TARGET("receipt_xes"."concept:name")),
-                                MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp",
+        PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"), 
+                                TARGET("{activity_table}"."{act_col}")),
+                                MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
         ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
-        TARGET("receipt_xes"."time:timestamp")) ) 
+        TARGET("{activity_table}"."{timestamp}")) ) 
         end
          """))
 
@@ -101,20 +101,20 @@ class TemporalProfiler:
 
         return df
 
-    def deviating_cases(self, sigma=6):
+    def deviations(self, sigma=6):
         """
-        Computes deviating cases
+        Computes deviating transitions
 
         :param sigma: statistical sigma
         :type sigma: int
 
-        :returns df: deviating cases as dataframe
+        :returns df: deviating transitions as dataframe
         :type df: pandas dataframe
         """
 
         query = PQL()
 
-        query.add(PQLColumn(name="case ID", query=f"""TARGET("{activity_table}"."{case_col}")"""))
+        query.add(PQLColumn(name=case_col, query=f"""TARGET("{activity_table}"."{case_col}")"""))
         query.add(PQLColumn(name="source", query=f"""SOURCE("{activity_table}"."{act_col}",
                     ANY_OCCURRENCE[] TO ANY_OCCURRENCE[])"""))
         query.add(PQLColumn(name="target", query=f"""TARGET("{activity_table}"."{act_col}")"""))
@@ -143,30 +143,30 @@ class TemporalProfiler:
                     """))
 
         # compute z-score of duration
-        query.add(PQLColumn(name="z.score", query="""
-                case when PU_STDEV ( DOMAIN_TABLE (SOURCE("receipt_xes"."concept:name"), 
-                                        TARGET("receipt_xes"."concept:name")),
-                                        MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp",
+        query.add(PQLColumn(name="z.score", query=f"""
+                case when PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"), 
+                                        TARGET("{activity_table}"."{act_col}")),
+                                        MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
                 ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
-                TARGET("receipt_xes"."time:timestamp")) ) = 0 then 0 else
+                TARGET("{activity_table}"."{timestamp}")) ) = 0 then 0 else
 
-                 (MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp"),
-                 TARGET("receipt_xes"."time:timestamp"))
-                 - PU_AVG ( DOMAIN_TABLE (SOURCE("receipt_xes"."concept:name"), 
-                                        TARGET("receipt_xes"."concept:name")),
-                                        MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp",
+                 (MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}"),
+                 TARGET("{activity_table}"."{timestamp}"))
+                 - PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"), 
+                                        TARGET("{activity_table}"."{act_col}")),
+                                        MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
                 ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
-                TARGET("receipt_xes"."time:timestamp")) ) )
+                TARGET("{activity_table}"."{timestamp}")) ) )
                 /
-                PU_STDEV ( DOMAIN_TABLE (SOURCE("receipt_xes"."concept:name"), 
-                                        TARGET("receipt_xes"."concept:name")),
-                                        MINUTES_BETWEEN(SOURCE("receipt_xes"."time:timestamp",
+                PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"), 
+                                        TARGET("{activity_table}"."{act_col}")),
+                                        MINUTES_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
                 ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
-                TARGET("receipt_xes"."time:timestamp")) ) 
+                TARGET("{activity_table}"."{timestamp}")) ) 
                 end
                  """))
 
-        # filter all cases with waiting time deviating more than average +- 3 sigma
+        # filter all cases with waiting time deviating more than average +- sigma
         # nice example of Pull-up with domain table
         filter_larger_than_average = f""" ( SECONDS_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
                     ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]),
@@ -210,3 +210,8 @@ class TemporalProfiler:
         df = datamodel.get_data_frame(query)
 
         return df
+
+    def deviating_cases(self, sigma=6):
+        df = self.deviations(sigma)
+        df = df[[case_col, "z.score"]]
+        return df.drop_duplicates(subset=case_col)

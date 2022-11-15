@@ -1,5 +1,5 @@
 from pycelonis import get_celonis
-
+from pycelonis.pql import PQL, PQLColumn
 
 class Connector:
     """
@@ -79,3 +79,13 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             :type id: string
             """
         self.datamodel = self.celonis.datamodels.find(id)
+
+    def events(self):
+        """
+             returns all events as dataframe
+        """
+        query = PQL()
+        query.add(PQLColumn(name="case:concept:name", query=f"\"{self.activity_table()}\".\"{self.case_col()}\""))
+        query.add(PQLColumn(name="concept:name", query=f"\"{self.activity_table()}\".\"{self.activity_col()}\""))
+        query.add(PQLColumn(name="timestamp", query=f""" "{self.activity_table()}"."{self.timestamp()}"  """))
+        events = self.datamodel.get_data_frame(query)
