@@ -1,5 +1,6 @@
+import pandas as pd
 from pycelonis.pql import PQL, PQLColumn, PQLFilter
-
+from pyinsights.conformance import alignment_scores_by_id
 
 class TemporalProfiler:
     """
@@ -211,7 +212,24 @@ class TemporalProfiler:
 
         return df
 
-    def deviating_cases(self, sigma=6):
-        df = self.deviations(sigma)
-        df = df[[case_col, "z.score"]]
-        return df.drop_duplicates(subset=case_col)
+    def deviating_cases(self, sigma=6, deviation_cost = True, extended_view=True):
+        deviations = self.deviations(sigma)
+        case_ids = deviations[case_col].drop_duplicates()
+        cols = deviations.columns.values
+
+        if deviation_cost:
+            alignment_cost = alignment_scores_by_id(case_ids, self.connector)
+            deviating_cases = pd.DataFrame({f'{case_col}':case_ids, "alignment cost": alignment_cost})
+            print(deviating_cases)
+            deviations = deviations.merge(deviating_cases.set_index(case_col),on=case_col, how="left")
+            print(deviations)
+            deviations["deviation cost"] = deviations["z.score"] + deviations["alignment cost"]
+
+
+
+        if not extended_view:
+            cols = [case_col, "source", "target"]
+        if deviation_cost:
+            cols.append("deviation cost")
+
+        return deviations[cols]

@@ -1,5 +1,5 @@
 from pycelonis import get_celonis
-from pycelonis.pql import PQL, PQLColumn
+from pycelonis.pql import PQL, PQLColumn, PQLFilter
 
 class Connector:
     """
@@ -80,12 +80,23 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             """
         self.datamodel = self.celonis.datamodels.find(id)
 
-    def events(self):
+    def events(self, ids_to_filter=[]):
         """
              returns all events as dataframe
         """
         query = PQL()
-        query.add(PQLColumn(name="case:concept:name", query=f"\"{self.activity_table()}\".\"{self.case_col()}\""))
-        query.add(PQLColumn(name="concept:name", query=f"\"{self.activity_table()}\".\"{self.activity_col()}\""))
-        query.add(PQLColumn(name="timestamp", query=f""" "{self.activity_table()}"."{self.timestamp()}"  """))
+        query.add(PQLColumn(name=self.case_col(), query=f"\"{self.activity_table()}\".\"{self.case_col()}\""))
+        query.add(PQLColumn(name=self.activity_col(), query=f"\"{self.activity_table()}\".\"{self.activity_col()}\""))
+        query.add(PQLColumn(name=self.timestamp(), query=f""" "{self.activity_table()}"."{self.timestamp()}"  """))
+
+        if len(ids_to_filter) > 0:
+            string = ""
+            for id in ids_to_filter:
+                string += f""" '{id}',"""
+            string = string[:-1]
+            filter = f""" FILTER "{self.activity_table()}"."{self.case_col()}" in ({string})
+                    """
+            query.add(PQLFilter(filter))
         events = self.datamodel.get_data_frame(query)
+
+        return events
