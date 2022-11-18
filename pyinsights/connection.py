@@ -80,7 +80,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             """
         self.datamodel = self.celonis.datamodels.find(id)
 
-    def events(self, ids_to_filter=[]):
+    def events(self):
         """
              returns all events as dataframe
         """
@@ -89,14 +89,6 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         query.add(PQLColumn(name=self.activity_col(), query=f"\"{self.activity_table()}\".\"{self.activity_col()}\""))
         query.add(PQLColumn(name=self.timestamp(), query=f""" "{self.activity_table()}"."{self.timestamp()}"  """))
 
-        if len(ids_to_filter) > 0:
-            string = ""
-            for id in ids_to_filter:
-                string += f""" '{id}',"""
-            string = string[:-1]
-            filter = f""" FILTER "{self.activity_table()}"."{self.case_col()}" in ({string})
-                    """
-            query.add(PQLFilter(filter))
         events = self.datamodel.get_data_frame(query)
 
         return events

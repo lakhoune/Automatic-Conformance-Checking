@@ -5,6 +5,7 @@ from pm4py.discovery import discover_petri_net_inductive
 import pandas as pd
 import pm4py
 
+
 def discover_petri_net_from_log(connector, events):
     """
     returns discovered petri net
@@ -14,11 +15,12 @@ def discover_petri_net_from_log(connector, events):
 
     df_formatted = pm4py.format_dataframe(events, case_id=connector.case_col(), activity_key=connector.activity_col(),
                                           timestamp_key=connector.timestamp())
-    #filtered_log = pm4py.filter_variants_top_k(df_formatted, 10)
+    # filtered_log = pm4py.filter_variants_top_k(df_formatted, 10)
 
     net, initial_marking, final_marking = discover_petri_net_inductive(df_formatted)
 
     return net, initial_marking, final_marking
+
 
 # alignment base conformance checking
 
@@ -52,58 +54,20 @@ def _petri_net_pql(net, inital_marking, final_marking):
     arcs_str += "]"
 
 
-
-def alignment_scores(events, connector):
-
-
+def alignment_scores(events_to_align,event_log, connector):
     """
     Computes alignment scores for cases and returns them
     as dataframe
     :param connection: Connector
     :return: alignment scores as dataframe
     """
-    event_log = connector.events()
-    events = pm4py.format_dataframe(events, case_id=connector.case_col(), activity_key=connector.activity_col(),
-                                          timestamp_key=connector.timestamp())
+
+    events_to_align = pm4py.format_dataframe(events_to_align, case_id=connector.case_col(), activity_key=connector.activity_col(),
+                                    timestamp_key=connector.timestamp())
     net, im, fm = discover_petri_net_from_log(events=event_log, connector=connector)
-    aligned_traces = pm4py.conformance_diagnostics_alignments(events, net, im, fm)
+    aligned_traces = pm4py.conformance_diagnostics_alignments(events_to_align, net, im, fm)
     costs = [aligned_traces[x]["cost"] for x in range(len(aligned_traces))]
     return costs
-    # model = """[ "source" "sink" "p3"
-    # "p4" "p2" "p1" "p5"],
-    # [ "T0" "T1" "T2" "T3" "T4" "Skip" ],
-    # [ ["source" "T4"] ["p1" "T1"] ["T1" "p2"] ["p2" "T0"] ["T4" "p1"] ["T0" "p3"] ["p3" "T2"]
-    # ["T2" "p4"] ["p4" "T3"] ["T3" "p5"] ["p5" "Skip"] ["Skip" "sink" ] ],
-    # [ ['T04 Determine confirmation of receipt' "T0"] ['T02 Check confirmation of receipt' "T1"]
-    # ['T05 Print and send confirmation of receipt' "T2"] ['T06 Determine necessity of stop
-    # advice' "T3"] ['Confirmation of receipt' "T4"] ['' "Skip"] ],
-    # [ "source" ],
-    # [ "sink" ]
-    # """
-    #
-    # #events = connection.events()
-    # #net, inital_marking, final_marking = discover_petri_net_from_log(events)
-    # #model = _petri_net_pql(net, inital_marking, final_marking)
-    #
-    # q3 = f"""PU_COUNT( DOMAIN_TABLE("{connection.activity_table()}"."{connection.case_col()}"),
-    #     REMAP_VALUES(ALIGN_MOVE("{connection.activity_table()}"."{connection.activity_col()}",{model}),
-    #     ['[S]',NULL])
-    #     )"""
-    #
-    # query2 = PQL()
-    # query2.add(PQLColumn(name="case Id", query=f"\"{connection.activity_table()}\".\"{connection.case_col()}\""))
-    # query2.add(PQLColumn(name="alignment_score", query=q3))
-    #
-    # df2 = connection.datamodel.get_data_frame(query2)
-    # df2.drop_duplicates(inplace=True)
-    #
-    # return df2
 
 
-
-
-def alignment_scores_by_id(case_ids, connector):
-    events = connector.events(ids_to_filter=case_ids)
-
-    return alignment_scores(events=events, connector=connector)
 

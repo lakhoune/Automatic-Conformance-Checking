@@ -1,1 +1,1 @@
-from temporal_profiler import TemporalProfiler
+from pyinsights.temporal_profiling.temporal_profiler import TemporalProfiler
