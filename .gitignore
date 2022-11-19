@@ -1,1 +1,3 @@
-log-skeleton/venv
+*/venv
+.idea/*
+*/__pychache__/*
