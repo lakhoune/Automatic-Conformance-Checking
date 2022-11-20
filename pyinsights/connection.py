@@ -22,7 +22,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             self.celonis = get_celonis(api_token=self.api_key, celonis_url=self.url)
         except:
             self.celonis = None
-            print("error")
+            print("error while connecting to celonis")
 
     def connect(self):
         """
