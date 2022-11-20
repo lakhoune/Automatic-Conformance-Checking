@@ -1,13 +1,15 @@
 import os
 from dotenv import load_dotenv
-from pyinsights import Connector
 from pyinsights.log_skeleton import LogSkeleton
+from pyinsights import Connector
 
-load_dotenv("../../.env")
+dirname = os.path.dirname(__file__)
+load_dotenv(os.path.join(dirname, "../../.env"))
 
 if __name__ == "__main__":
+    print("Available datamodels:")
     celonis_url = os.getenv("CELONIS_URL")
-    api_token = os.getenv("API_TOKEN")
+    api_token = os.getenv("CELONIS_API_TOKEN")
 
     connector = Connector(api_key=api_token, url=celonis_url)
     print("Available datamodels:")
