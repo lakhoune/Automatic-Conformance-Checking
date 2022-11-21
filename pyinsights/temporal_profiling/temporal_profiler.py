@@ -1,5 +1,5 @@
 import pandas as pd
-from pycelonis.pql import PQL, PQLColumn, PQLFilter
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 from pyinsights.conformance import alignment_scores
 
 

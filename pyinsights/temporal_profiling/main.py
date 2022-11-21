@@ -2,8 +2,7 @@
 import numpy as np
 import pandas as pd
 from pycelonis import get_celonis
-from pycelonis import pql
-from pycelonis.pql import PQL, PQLColumn, PQLFilter
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 from pyinsights import Connector
 from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.conformance import alignment_scores
@@ -27,7 +26,7 @@ if __name__ == "__main__":
     temporal_profiler = TemporalProfiler(connector=connector)
 
     df2 = temporal_profiler.temporal_profile()
-    #deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
+    deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
 
     query = PQL()
     query.add(PQLColumn(name=connector.case_col(), query=f"SOURCE(\"{connector.activity_table()}\".\"{connector.case_col()}\", FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[])"))
@@ -45,14 +44,14 @@ if __name__ == "__main__":
                         TARGET("{connector.activity_table()}"."START_DATE")) )
                         """))
     events = connector.datamodel.get_data_frame(query)
-    print(events[:100].to_string())
+    #print(events[:100].to_string())
 
     print("Temporal Profile")
     print(df2.to_string())
 
 
     print("Deviating cases:")
-    #print(deviating_cases_df.to_string())
+    print(deviating_cases_df.to_string())
 
     # print("pm4py comparison")
     #

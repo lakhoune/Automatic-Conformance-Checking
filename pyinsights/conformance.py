@@ -1,6 +1,6 @@
 import typing
 from pycelonis import pql
-from pycelonis.pql import PQL, PQLColumn, PQLFilter
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 from pm4py.discovery import discover_petri_net_inductive
 import pandas as pd
 import pm4py

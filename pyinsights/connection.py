@@ -1,5 +1,5 @@
 from pycelonis import get_celonis
-from pycelonis.pql import PQL, PQLColumn, PQLFilter
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 
 class Connector:
     """
@@ -16,20 +16,21 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
     end_time = None
 
-    def __init__(self, api_token, url):
+    def __init__(self, api_token, url, key_type = "USER_KEY"):
         self.datamodel = None
         self.datapool = None
         self.api_token = api_token
         self.url = url
+        self.key_type = key_type
 
         global end_time
         end_time = None
 
         try:
-            self.celonis = get_celonis(api_token=self.api_token, celonis_url=self.url)
+            self.celonis = get_celonis(api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
         except:
             self.celonis = None
-            print("error")
+            print("celonis error")
 
     def connect(self):
         """
@@ -37,9 +38,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         """
 
         try:
-            self.celonis = get_celonis(api_token=self.api_key, celonis_url=self.url)
+            self.celonis = get_celonis(api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
         except:
-            print("error")
+            self.celonis = None
+            print("celonis error")
 
     def activity_table(self):
         """
