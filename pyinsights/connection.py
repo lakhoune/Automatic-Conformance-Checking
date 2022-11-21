@@ -28,8 +28,9 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
         try:
             self.celonis = get_celonis(api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
-        except:
+        except Exception as e:
             self.celonis = None
+            print(e)
             print("celonis error")
 
     def connect(self):

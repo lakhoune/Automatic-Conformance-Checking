@@ -1,4 +1,4 @@
-from pycelonis.pql import PQL, PQLColumn, PQLFilter
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 
 
 class LogSkeleton:
