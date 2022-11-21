@@ -14,41 +14,53 @@ if __name__ == "__main__":
     celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
     api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
-    #celonis_url = "academic-m-s-qafari-pads-rwth-aachen-de.eu-2.celonis.cloud"
-    #api_token = "ZTUxZGNjNmItYzEwNy00MTI4LWJjZDctZmU1Zjg0Y2ZiYmQ0OkxRaHNRaEd6eHFMYXBwSlhyUkg1Z0NlUjBOUDlMbzdpcFZNNGx4cGdhdlJx"
+    # define connector and connect to celonis
     connector = Connector(api_token=api_token, url=celonis_url)
+
+    # choose data model
     print("Available datamodels:")
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
     connector.set_paramters(model_id=id, end_timestamp="END_DATE")
 
+    # init temporal profiler
     temporal_profiler = TemporalProfiler(connector=connector)
 
-    df2 = temporal_profiler.temporal_profile()
+    #compute temporal profile (not necessary for next steps)
+    waiting, sojourn = temporal_profiler.temporal_profile()
+    # compute deviating cases with deviation cost
     deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
+    # compute deviating events
+    deviations = temporal_profiler.deviations()
 
-    query = PQL()
-    query.add(PQLColumn(name=connector.case_col(), query=f"SOURCE(\"{connector.activity_table()}\".\"{connector.case_col()}\", FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[])"))
-    query.add(PQLColumn(name=connector.activity_col(), query=f"SOURCE(\"{connector.activity_table()}\".\"{connector.activity_col()}\")"))
-    query.add(PQLColumn(name="target", query=f"TARGET(\"{connector.activity_table()}\".\"{connector.activity_col()}\")"))
-    query.add(PQLColumn(name=connector.timestamp(), query=f"SOURCE(\"{connector.activity_table()}\".\"END_DATE\")"))
-    query.add(PQLColumn(name="end time", query=f"tARGET(\"{connector.activity_table()}\".\"START_DATE\")"))
-    query.add(PQLColumn(name="diff time", query=f"DATEDIFF(ms,SOURCE(\"{connector.activity_table()}\".\"END_DATE\"),TARGET(\"{connector.activity_table()}\".\"START_DATE\"))"))
-    #query.add(PQLFilter(f"DATEDIFF(ms,\"{connector.activity_table()}\".\"START_DATE\",\"{connector.activity_table()}\".\"END_DATE\") > 0"))
-    query.add(PQLColumn(name="avg duration", query=f"""
-                            PU_AVG ( DOMAIN_TABLE (SOURCE("{connector.activity_table()}"."{connector.activity_col()}",
-                            FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[]), 
-                                                TARGET("{connector.activity_table()}"."{connector.activity_col()}")),
-                                                SECONDS_BETWEEN(SOURCE("{connector.activity_table()}"."END_DATE", FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[]),
-                        TARGET("{connector.activity_table()}"."START_DATE")) )
-                        """))
-    events = connector.datamodel.get_data_frame(query)
+    # just testing start / end timestamps
+    # query = PQL()
+    # query.add(PQLColumn(name=connector.case_col(), query=f"SOURCE(\"{connector.activity_table()}\".\"{connector.case_col()}\", FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[])"))
+    # query.add(PQLColumn(name=connector.activity_col(), query=f"SOURCE(\"{connector.activity_table()}\".\"{connector.activity_col()}\")"))
+    # query.add(PQLColumn(name="target", query=f"TARGET(\"{connector.activity_table()}\".\"{connector.activity_col()}\")"))
+    # query.add(PQLColumn(name=connector.timestamp(), query=f"SOURCE(\"{connector.activity_table()}\".\"END_DATE\")"))
+    # query.add(PQLColumn(name="end time", query=f"tARGET(\"{connector.activity_table()}\".\"START_DATE\")"))
+    # query.add(PQLColumn(name="diff time", query=f"DATEDIFF(ms,SOURCE(\"{connector.activity_table()}\".\"END_DATE\"),TARGET(\"{connector.activity_table()}\".\"START_DATE\"))"))
+    # #query.add(PQLFilter(f"DATEDIFF(ms,\"{connector.activity_table()}\".\"START_DATE\",\"{connector.activity_table()}\".\"END_DATE\") > 0"))
+    # query.add(PQLColumn(name="avg duration", query=f"""
+    #                         PU_AVG ( DOMAIN_TABLE (SOURCE("{connector.activity_table()}"."{connector.activity_col()}",
+    #                         FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[]),
+    #                                             TARGET("{connector.activity_table()}"."{connector.activity_col()}")),
+    #                                             SECONDS_BETWEEN(SOURCE("{connector.activity_table()}"."END_DATE", FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[]),
+    #                     TARGET("{connector.activity_table()}"."START_DATE")) )
+    #                     """))
+    # events = connector.datamodel.get_data_frame(query)
     #print(events[:100].to_string())
 
-    print("Temporal Profile")
-    print(df2.to_string())
+    print("Waiting Profile")
+    print(waiting.to_string())
 
+    print("Sojourn Profile")
+    print(sojourn.to_string())
+
+    print("deviations")
+    print(deviations.to_string())
 
     print("Deviating cases:")
     print(deviating_cases_df.to_string())

@@ -112,7 +112,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         returns true if datamodel has end-timestamp
         :return: bool
         """
-        return end_time is not None
+        return self.end_time is not None
 
     def events(self):
         """
