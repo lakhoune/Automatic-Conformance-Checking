@@ -19,3 +19,11 @@ Automatic Conformance Checking insights in Celonis
 ## `pyinsights is not a module`
 
 This means you need to `/path/to/pyinsights-folder` to `PYTHONPATH` environment variable
+
+## `packaging is not a module`
+
+Pycelonis relies on this package but does not seem to install it, so we install it manually
+
+```sh
+pip install packaging
+```
