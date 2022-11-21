@@ -26,7 +26,7 @@ def discover_petri_net_from_log(connector, events):
 
 def _petri_net_pql(net, inital_marking, final_marking):
     """
-    turn pm4py petri net representation into pql-conforming string
+    turn pm4py petri net representation into pql-conforming string (not implemented)
     :param net: pm4py petri net
     :param inital_marking: initial marking
     :param final_marking: final marking

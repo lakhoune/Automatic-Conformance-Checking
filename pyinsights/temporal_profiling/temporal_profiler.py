@@ -19,6 +19,7 @@ class TemporalProfiler:
     act_col = None
     timestamp = None
     transition_mode = None
+    end_timestamp = None
 
     def __init__(self, connector):
         global datamodel
@@ -27,7 +28,8 @@ class TemporalProfiler:
         global act_col
         global timestamp
         global transition_mode
-
+        global end_timestamp
+        
         self.connector = connector
 
         datamodel = self.connector.datamodel
@@ -35,7 +37,9 @@ class TemporalProfiler:
         case_col = self.connector.case_col()
         act_col = self.connector.activity_col()
         timestamp = self.connector.timestamp()
-        transition_mode = "FIRST_OCCURRENCE[] TO ANY_OCCURRENCE[]"
+        end_timestamp = self.connector.end_timestamp()
+        transition_mode = "FIRST_OCCURRENCE[] TO ANY_OCCURRENCE_WITH_SELF[]"
+        
     def temporal_profile(self):
         """
         Computes temporal profile
@@ -56,7 +60,7 @@ class TemporalProfiler:
         query.add(PQLColumn(name="avg duration", query=f"""
                 PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",{transition_mode}), 
                                     TARGET("{activity_table}"."{act_col}")),
-                                    SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                    SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
             {transition_mode}),
             TARGET("{activity_table}"."{timestamp}")) )
             """))
@@ -67,7 +71,7 @@ class TemporalProfiler:
             PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}"
                                     , {transition_mode}), 
                                     TARGET("{activity_table}"."{act_col}")),
-                                    SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                    SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
             {transition_mode}),
             TARGET("{activity_table}"."{timestamp}")) )
             """))
@@ -95,7 +99,7 @@ class TemporalProfiler:
         query.add(PQLColumn(name="source", query=f"""SOURCE("{activity_table}"."{act_col}",
                     {transition_mode})"""))
         query.add(PQLColumn(name="target", query=f"""TARGET("{activity_table}"."{act_col}")"""))
-        query.add(PQLColumn(name="duration", query=f"""SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+        query.add(PQLColumn(name="duration", query=f"""SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}"))"""))
 
@@ -105,7 +109,7 @@ class TemporalProfiler:
                         PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                         {transition_mode}), 
                                             TARGET("{activity_table}"."{act_col}")),
-                                            SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                            SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}")) )
                     """))
@@ -116,7 +120,7 @@ class TemporalProfiler:
                     PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                     {transition_mode}), 
                                             TARGET("{activity_table}"."{act_col}")),
-                                            SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                            SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}")) )
                     """))
@@ -126,26 +130,26 @@ class TemporalProfiler:
                 case when PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                 {transition_mode}), 
                                         TARGET("{activity_table}"."{act_col}")),
-                                        SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                        SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                 {transition_mode}),
                 TARGET("{activity_table}"."{timestamp}")) ) = 0 then 0
                  
                  else
 
-                 (SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                 (SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                  {transition_mode}),
                  TARGET("{activity_table}"."{timestamp}"))
                  - PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                  {transition_mode}), 
                                         TARGET("{activity_table}"."{act_col}")),
-                                        SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                        SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                 {transition_mode}),
                 TARGET("{activity_table}"."{timestamp}")) ) )
                 /
                 PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                 {transition_mode}), 
                                         TARGET("{activity_table}"."{act_col}")),
-                                        SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                        SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                 {transition_mode}),
                 TARGET("{activity_table}"."{timestamp}")) ) 
                 end
@@ -153,39 +157,39 @@ class TemporalProfiler:
 
         # filter all cases with waiting time deviating more than average +- sigma
         # nice example of Pull-up with domain table
-        filter_larger_than_average = f""" ( SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+        filter_larger_than_average = f""" ( SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}"))
-                     >= 
+                     >
                     PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                             {transition_mode}), 
                                             TARGET("{activity_table}"."{act_col}")),
-                                            SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                            SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}")) )
                     +
                     {sigma} * PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                     {transition_mode}), 
                                             TARGET("{activity_table}"."{act_col}")),
-                                            SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                            SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}")) ) 
                     )
                     OR
-                    ( SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                    ( SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}"))
-                     <=
+                     <
                     PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",{transition_mode}), 
                                             TARGET("{activity_table}"."{act_col}")),
-                                            SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                            SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}")) )
                     -
                     {sigma} * PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
                             {transition_mode}), 
                                             TARGET("{activity_table}"."{act_col}")),
-                                            SECONDS_BETWEEN(SOURCE(END_TIMESTAMP_COLUMN(),
+                                            SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode}),
                     TARGET("{activity_table}"."{timestamp}")) ) 
                     )

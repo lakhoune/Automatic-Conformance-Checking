@@ -14,12 +14,19 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
 """
 
-    def __init__(self, api_key, url):
+    end_time = None
+
+    def __init__(self, api_token, url):
         self.datamodel = None
-        self.api_key = api_key
+        self.datapool = None
+        self.api_token = api_token
         self.url = url
+
+        global end_time
+        end_time = None
+
         try:
-            self.celonis = get_celonis(api_token=self.api_key, celonis_url=self.url)
+            self.celonis = get_celonis(api_token=self.api_token, celonis_url=self.url)
         except:
             self.celonis = None
             print("error")
@@ -63,6 +70,16 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
         return act_col
 
+    def end_timestamp(self):
+        """
+        returns name of end timestamp column or none
+        :return:
+        """
+        if self.end_time is not None:
+            return self.end_time
+        else:
+            return self.timestamp()
+
     def timestamp(self):
         """
            returns name of timestamp column
@@ -72,13 +89,28 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
         return timestamp
 
-    def set_datamodel(self, id):
+    def set_paramters(self, pool_id=None, model_id=None, end_timestamp=None):
         """
-            sets datamodel
+            sets celonis data parameters
             :param id: id of datamodel
             :type id: string
             """
-        self.datamodel = self.celonis.datamodels.find(id)
+        if pool_id is not None:
+            self.datapool = self.celonis.data_integration.get_data_pool(pool_id)
+
+        if model_id is not None:
+            self.datamodel = self.celonis.datamodels.find(model_id)
+
+        if end_timestamp is not None:
+            self.end_time = end_timestamp
+
+
+    def has_end_timestamp(self):
+        """
+        returns true if datamodel has end-timestamp
+        :return: bool
+        """
+        return end_time is not None
 
     def events(self):
         """
