@@ -12,11 +12,14 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 :param url: Celonis url
 :type url: string
 
+:param key_type: Celonis key type
+:type key_type: string
+
 """
 
     end_time = None
 
-    def __init__(self, api_token, url, key_type = "USER_KEY"):
+    def __init__(self, api_token, url, key_type):
         self.datamodel = None
         self.datapool = None
         self.api_token = api_token
