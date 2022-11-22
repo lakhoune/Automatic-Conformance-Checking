@@ -38,7 +38,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
                 api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
             if (len(self.celonis.pools) > 0):
                 self.datapool = self.celonis.pools[0]
-            if (len(self.celonis.datamodels > 0)):
+            if (len(self.celonis.datamodels) > 0):
                 self.datamodel = self.celonis.datamodels[0]
         except Exception as e:
             self.celonis = None
