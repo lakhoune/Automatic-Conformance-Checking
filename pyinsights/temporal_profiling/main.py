@@ -15,7 +15,7 @@ if __name__ == "__main__":
     api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
     # define connector and connect to celonis
-    connector = Connector(api_token=api_token, url=celonis_url)
+    connector = Connector(api_token=api_token, url=celonis_url, key_type="USER_KEY")
 
     # choose data model
     print("Available datamodels:")
