@@ -49,6 +49,12 @@ class TemporalProfiler:
         :returns df: waiting time and sojourn times as dataframes
         :type df: pandas.core.Dataframe
         """
+
+        # init vars
+        waiting_times = pd.DataFrame()
+        sojourn_times = pd.DataFrame()
+
+
         # queries for waiting time
         source_act = f"""SOURCE("{activity_table}"."{act_col}",{transition_mode})"""
 
@@ -110,12 +116,14 @@ class TemporalProfiler:
             # needs pull-up and domain table because of celonis joins
             sojourn_query.add(PQLColumn(name="std sojourn", query=std_sojourn))
 
-            sojourn_profile = datamodel.get_data_frame(sojourn_query)
+            sojourn_times = datamodel.get_data_frame(sojourn_query)
             # pql returns profile for every occurrence of activity
-            sojourn_profile.drop_duplicates(subset=[act_col], inplace=True)
+            sojourn_times.drop_duplicates(subset=[act_col], inplace=True)
 
-            return waiting_times, sojourn_profile
-        return waiting_times
+        # resulting temporal profile
+        temporal_profile = {'waiting times': waiting_times, 'sojourn times': sojourn_times}
+
+        return temporal_profile
 
     def deviations(self, sigma=6):
         """
