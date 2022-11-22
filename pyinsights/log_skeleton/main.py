@@ -11,7 +11,8 @@ if __name__ == "__main__":
     celonis_url = "https://academic-rastoder-erdzan-rwth-aachen-de.eu-2.celonis.cloud/"
     api_token = "MDVkYWJkOGMtMDQ1OC00Mjc2LTk4ZjEtYzFkYTM5ZTliN2Q2OjA5WnZvUGtqUkNEK1JjUE9lVzMrckNUUm8vbnJ0WXBodmNnK0dCNTJDeDVi"
 
-    connector = Connector(api_token=api_token, url=celonis_url)
+    connector = Connector(api_token=api_token,
+                          url=celonis_url, key_type="APP_KEY")
     print("Available datamodels:")
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
