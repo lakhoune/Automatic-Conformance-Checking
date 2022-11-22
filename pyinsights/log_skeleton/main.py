@@ -11,7 +11,6 @@ if __name__ == "__main__":
         "CELONIS_URL") or "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
     api_token = os.getenv(
         "API_TOKEN") or "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
-    print(celonis_url)
     key_type = os.getenv(
         "KEY_TYPE") or "USER_KEY"
     connector = Connector(api_token=api_token,
