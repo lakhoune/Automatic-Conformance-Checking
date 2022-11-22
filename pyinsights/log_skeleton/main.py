@@ -9,11 +9,11 @@ load_dotenv(os.path.join(dirname, "../../.env"))
 
 if __name__ == "__main__":
     celonis_url = os.getenv(
-        "CELONIS_URL") or "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
+        "CELONIS_URL") or "https://academic-rastoder-erdzan-rwth-aachen-de.eu-2.celonis.cloud/"
     api_token = os.getenv(
-        "API_TOKEN") or "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
+        "API_TOKEN") or "MDVkYWJkOGMtMDQ1OC00Mjc2LTk4ZjEtYzFkYTM5ZTliN2Q2OjA5WnZvUGtqUkNEK1JjUE9lVzMrckNUUm8vbnJ0WXBodmNnK0dCNTJDeDVi"
     key_type = os.getenv(
-        "KEY_TYPE") or "USER_KEY"
+        "KEY_TYPE") or "APP_KEY"
     connector = Connector(api_token=api_token,
                           url=celonis_url, key_type=key_type)
     # choose data model
@@ -21,10 +21,9 @@ if __name__ == "__main__":
     print(connector.celonis.datamodels)
 
     print("Input id of datamodel:")
-    # id = input()
-    # connector.set_paramters(model_id=id)
+    id = input()
+    connector.set_paramters(model_id=id)
 
     log_skeleton = LogSkeleton(connector=connector)
 
-    log = pm4py.read_xes(os.path.join("tests", "input_data", "running-example.xes"))
-    print(log)
+    log_skeleton.get_equivalence()

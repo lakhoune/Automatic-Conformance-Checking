@@ -10,6 +10,7 @@ class LogSkeleton:
     case_col = None
     act_col = None
     timestamp = None
+    transition_mode = None
 
     def __init__(self, connector):
         """
@@ -20,6 +21,7 @@ class LogSkeleton:
         global case_col
         global act_col
         global timestamp
+        global transition_mode
 
         self.connector = connector
         datamodel = self.connector.datamodel
@@ -27,6 +29,7 @@ class LogSkeleton:
         case_col = self.connector.case_col()
         act_col = self.connector.activity_col()
         timestamp = self.connector.timestamp()
+        transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
     def get_log_skeleton(self, noise_threshold):
         """
         Returns the log skeleton of the data model.
@@ -86,6 +89,27 @@ class LogSkeleton:
         """
         equivalence = None
         # Get the equivalence relation
+
+        return equivalence
+
+    def get_equivalence(self):
+        """
+        Returns the equivalence relation of the log skeleton.
+        :param extended_log: pandas.DataFrame
+        :param noise_threshold: int
+        :return: pandas.DataFrame
+        """
+        equivalence = None
+        # Get the equivalence relation
+        query = PQL()
+
+        query.add(PQLColumn(name=case_col, query=f""" "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col, query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(name="nr", query=f""" ACTIVATION_COUNT ( "{activity_table}"."{act_col}" )  """))
+        df = datamodel.get_data_frame(query)
+
+        print(df)
+
 
         return equivalence
 
