@@ -1,2 +1,4 @@
 .idea/*
-*/__pychache__/*
+pyinsights/__pycache__/*
+pyinsights/temporal_profiling/__pycache__/*
+.gitignore
