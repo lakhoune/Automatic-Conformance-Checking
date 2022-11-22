@@ -30,6 +30,7 @@ class LogSkeleton:
         act_col = self.connector.activity_col()
         timestamp = self.connector.timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
+
     def get_log_skeleton(self, noise_threshold):
         """
         Returns the log skeleton of the data model.
@@ -108,9 +109,28 @@ class LogSkeleton:
         query.add(PQLColumn(name="nr", query=f""" ACTIVATION_COUNT ( "{activity_table}"."{act_col}" )  """))
         df = datamodel.get_data_frame(query)
 
-        print(df)
+        # reverse the order of the rows
+        df = df.iloc[::-1]
 
+        # dictionary to store the case id and the activity name with the highest activation count
+        max_act = {}
 
+        # loop over the rows
+        for index, row in df.iterrows():
+            # check if the case id is already in the dictionary
+            if row[case_col] in max_act:
+                # check if the activation column is already in the dictionary
+                # if row[act_col] in max_act[row[case_col]]:
+                if any(row[act_col] in act for act in max_act[row[case_col]]):
+                    # do nothing
+                    pass
+                else:
+                    # append the activation count to the dictionary
+                    max_act[row[case_col]].append({row[act_col]: row["nr"]})
+            else:
+                # add the case id and the activity name with the highest activation count to the dictionary
+                max_act[row[case_col]] = [{row[act_col]: row["nr"]}]
+                
         return equivalence
 
     def _get_always_after(self, extended_log, noise_threshold):
