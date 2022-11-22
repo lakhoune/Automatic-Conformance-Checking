@@ -1,4 +1,5 @@
 import os
+import pm4py
 from dotenv import load_dotenv
 from pyinsights.log_skeleton import LogSkeleton
 from pyinsights import Connector
@@ -15,5 +16,15 @@ if __name__ == "__main__":
         "KEY_TYPE") or "USER_KEY"
     connector = Connector(api_token=api_token,
                           url=celonis_url, key_type=key_type)
+    # choose data model
+    print("Available datamodels:")
+    print(connector.celonis.datamodels)
+
+    print("Input id of datamodel:")
+    # id = input()
+    # connector.set_paramters(model_id=id)
 
     log_skeleton = LogSkeleton(connector=connector)
+
+    log = pm4py.read_xes(os.path.join("tests", "input_data", "running-example.xes"))
+    print(log)

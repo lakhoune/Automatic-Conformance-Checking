@@ -27,7 +27,6 @@ class LogSkeleton:
         case_col = self.connector.case_col()
         act_col = self.connector.activity_col()
         timestamp = self.connector.timestamp()
-
     def get_log_skeleton(self, noise_threshold):
         """
         Returns the log skeleton of the data model.
