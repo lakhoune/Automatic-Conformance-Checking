@@ -1,6 +1,7 @@
 
 import numpy as np
 import pandas as pd
+import streamlit as st
 from pycelonis import get_celonis
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 from pyinsights import Connector
