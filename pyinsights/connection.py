@@ -1,5 +1,9 @@
-from pycelonis import get_celonis
+from pycelonis import get_celonis, __version__
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
+
+pycelonis_version = "1.7.3"
+assert __version__ == pycelonis_version, f"Wrong pycelonis version: {__version__}, make sure you are using version {pycelonis_version}"
+
 
 class Connector:
     """
@@ -30,7 +34,8 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         end_time = None
 
         try:
-            self.celonis = get_celonis(api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
+            self.celonis = get_celonis(
+                api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
         except Exception as e:
             self.celonis = None
             print(e)
@@ -42,7 +47,8 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         """
 
         try:
-            self.celonis = get_celonis(api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
+            self.celonis = get_celonis(
+                api_token=self.api_token, url=self.url, key_type=self.key_type, permissions=False)
         except:
             self.celonis = None
             print("celonis error")
@@ -102,14 +108,14 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             :type id: string
             """
         if pool_id is not None:
-            self.datapool = self.celonis.data_integration.get_data_pool(pool_id)
+            self.datapool = self.celonis.data_integration.get_data_pool(
+                pool_id)
 
         if model_id is not None:
             self.datamodel = self.celonis.datamodels.find(model_id)
 
         if end_timestamp is not None:
             self.end_time = end_timestamp
-
 
     def has_end_timestamp(self):
         """
@@ -123,9 +129,12 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
              returns all events as dataframe
         """
         query = PQL()
-        query.add(PQLColumn(name=self.case_col(), query=f"\"{self.activity_table()}\".\"{self.case_col()}\""))
-        query.add(PQLColumn(name=self.activity_col(), query=f"\"{self.activity_table()}\".\"{self.activity_col()}\""))
-        query.add(PQLColumn(name=self.timestamp(), query=f""" "{self.activity_table()}"."{self.timestamp()}"  """))
+        query.add(PQLColumn(name=self.case_col(),
+                  query=f"\"{self.activity_table()}\".\"{self.case_col()}\""))
+        query.add(PQLColumn(name=self.activity_col(),
+                  query=f"\"{self.activity_table()}\".\"{self.activity_col()}\""))
+        query.add(PQLColumn(name=self.timestamp(),
+                  query=f""" "{self.activity_table()}"."{self.timestamp()}"  """))
 
         events = self.datamodel.get_data_frame(query)
 
