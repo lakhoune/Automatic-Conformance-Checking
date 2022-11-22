@@ -7,17 +7,14 @@ dirname = os.path.dirname(__file__)
 load_dotenv(os.path.join(dirname, "../../.env"))
 
 if __name__ == "__main__":
-    print("Available datamodels:")
-    celonis_url = "https://academic-rastoder-erdzan-rwth-aachen-de.eu-2.celonis.cloud/"
-    api_token = "MDVkYWJkOGMtMDQ1OC00Mjc2LTk4ZjEtYzFkYTM5ZTliN2Q2OjA5WnZvUGtqUkNEK1JjUE9lVzMrckNUUm8vbnJ0WXBodmNnK0dCNTJDeDVi"
-
+    celonis_url = os.getenv(
+        "CELONIS_URL") or "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
+    api_token = os.getenv(
+        "API_TOKEN") or "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
+    print(celonis_url)
+    key_type = os.getenv(
+        "KEY_TYPE") or "USER_KEY"
     connector = Connector(api_token=api_token,
-                          url=celonis_url, key_type="APP_KEY")
-    print("Available datamodels:")
-    print(connector.celonis.datamodels)
-    print("Input id of datamodel:")
-    datamodel = input()
-
-    connector.set_datamodel(datamodel)
+                          url=celonis_url, key_type=key_type)
 
     log_skeleton = LogSkeleton(connector=connector)
