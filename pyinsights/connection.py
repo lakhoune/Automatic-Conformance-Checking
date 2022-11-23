@@ -12,11 +12,14 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 :param url: Celonis url
 :type url: string
 
+:param key_type: Celonis key type
+:type key_type: string
+
 """
 
     end_time = None
 
-    def __init__(self, api_token, url, key_type = "USER_KEY"):
+    def __init__(self, api_token, url, key_type):
         self.datamodel = None
         self.datapool = None
         self.api_token = api_token
@@ -94,14 +97,14 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
     def set_paramters(self, pool_id=None, model_id=None, end_timestamp=None):
         """
             sets celonis data parameters
-            :param id: id of datamodel
-            :type id: string
+            :param model_id: id of datamodel
+            :type model_id: string
             """
         if pool_id is not None:
-            self.datapool = self.celonis.data_integration.get_data_pool(pool_id)
+            self.datapool = self.celonis.pools.find(pool_id)
 
         if model_id is not None:
-            self.datamodel = self.celonis.datamodels.find(model_id)
+            self.datamodel = self.celonis.get_datamodel(model_id)
 
         if end_timestamp is not None:
             self.end_time = end_timestamp

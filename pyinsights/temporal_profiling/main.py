@@ -15,20 +15,20 @@ if __name__ == "__main__":
     api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
     # define connector and connect to celonis
-    connector = Connector(api_token=api_token, url=celonis_url)
+    connector = Connector(api_token=api_token, url=celonis_url, key_type="USER_KEY")
 
     # choose data model
     print("Available datamodels:")
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
-    connector.set_paramters(model_id=id, end_timestamp="END_DATE")
+    connector.set_paramters(model_id=id)#, end_timestamp="END_DATE")
 
     # init temporal profiler
     temporal_profiler = TemporalProfiler(connector=connector)
 
     #compute temporal profile (not necessary for next steps)
-    waiting, sojourn = temporal_profiler.temporal_profile()
+    temporal_profile = temporal_profiler.temporal_profile()
     # compute deviating cases with deviation cost
     deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
     # compute deviating events
@@ -54,10 +54,10 @@ if __name__ == "__main__":
     #print(events[:100].to_string())
 
     print("Waiting Profile")
-    print(waiting.to_string())
+    print(temporal_profile['waiting times'].to_string())
 
     print("Sojourn Profile")
-    print(sojourn.to_string())
+    print(temporal_profile['sojourn times'].to_string())
 
     print("deviations")
     print(deviations.to_string())
