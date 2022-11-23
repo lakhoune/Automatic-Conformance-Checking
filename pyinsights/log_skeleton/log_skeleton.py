@@ -130,7 +130,26 @@ class LogSkeleton:
             else:
                 # add the case id and the activity name with the highest activation count to the dictionary
                 max_act[row[case_col]] = [{row[act_col]: row["nr"]}]
-                
+
+        activities_of_cases_with_same_max_act = {}
+        # get the activities in each case where a pair of activities has the same activation count
+        for case in max_act:
+            for act in max_act[case]:
+                for act2 in max_act[case]:
+                    if act != act2:
+                        if list(act.values())[0] == list(act2.values())[0]:
+                            if case in activities_of_cases_with_same_max_act:
+                                activities_of_cases_with_same_max_act[case].append(
+                                    {list(act.keys())[0]: list(act2.keys())[0]})
+                            else:
+                                activities_of_cases_with_same_max_act[case] = [
+                                    {list(act.keys())[0]: list(act2.keys())[0]}]
+                            # print(act)
+                            # print(act2)
+                            # print("")
+
+        print(activities_of_cases_with_same_max_act)
+
         return equivalence
 
     def _get_always_after(self, extended_log, noise_threshold):
