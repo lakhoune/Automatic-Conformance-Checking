@@ -7,7 +7,7 @@ Automatic Conformance Checking insights in Celonis
 - Install pycelonis
 
     ```sh
-    pip install --extra-index-url=https://pypi.celonis.cloud/ pycelonis=="1.5.3"
+    pip install --extra-index-url=https://pypi.celonis.cloud/ pycelonis=="1.7.3"
     ```
 
 - Install dotenv
