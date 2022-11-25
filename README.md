@@ -1,15 +1,17 @@
 # Automatic-Conformance-Checking
 
-We developed the library **pyinsights** to get automatic conformance checking insights on business processes. 
+We developed the library **pyinsights** to get automatic conformance checking insights on business processes.
 We aim at a seamless integration with one of the leading process mining tools [Celonis](https://www.celonis.com/).
+
 ## Dependencies
+
 - numpy
 - pandas
 - pycelonis == 1.7.3
 - pm4py == 2.2.23
 
-
 ## Install
+
 - Install pycelonis
 
     ```sh
@@ -33,10 +35,14 @@ Pycelonis relies on this package but does not seem to install it, so we install 
 ```sh
 pip install packaging
 ```
+
 ## Usage Examples
+
 ### Temporal Profiling Example
-Our library pyinsights can compute the temporal profile of an event log and 
+
+Our library pyinsights can compute the temporal profile of an event log and
 identify deviating cases based on it.
+
 ```python
     from pyinsights import Connector
     from pyinsights.temporal_profiling import TemporalProfiler
@@ -63,13 +69,14 @@ identify deviating cases based on it.
     deviating_cases_df = temporal_profiler.deviating_cases(sigma = 6, extended_view=False)
     deviating_cases_df
 ```
+
 <p align="center">
   <img width="" src="docs/images/temporal_deviations_example.PNG" />
 </p>
 
-
-
 ## Citations
+
 Pyinsights implements some approaches on conformance checking first suggested in research.
 Some of the paper we used include:
+
 - [Temporal Conformance Checking at Runtime based on Time-infused Process Models](https://arxiv.org/abs/2008.07262)
