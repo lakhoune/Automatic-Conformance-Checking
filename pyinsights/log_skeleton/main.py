@@ -22,5 +22,3 @@ if __name__ == "__main__":
     # connector.set_paramters(model_id=id)
 
     log_skeleton = LogSkeleton(connector=connector)
-
-    log_skeleton._extend_log()

@@ -1,4 +1,5 @@
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
+import numpy as np
 
 
 class LogSkeleton:
@@ -58,23 +59,22 @@ class LogSkeleton:
         Extends the log by adding an artificial start and end event to each trace.
         :return: pandas.DataFrame
         """
-        extended_log = None
-        # Get the first and last event of each trace
-
         query = PQL()
         query.add(PQLColumn(name=act_col,
                             query=f"""  "{activity_table}"."{act_col}" """))
-        query.add(PQLColumn(name=act_col,
+        query.add(PQLColumn(name=case_col,
                             query=f"""  "{activity_table}"."{case_col}" """))
-        query.add(PQLColumn(name=act_col,
-                            query=f"""  MIN ( "{activity_table}"."{timestamp}" ) """))
-        query.add(PQLColumn(name=act_col,
-                            query=f"""  MAX ( "{activity_table}"."{timestamp}" )  """))
+        query.add(PQLColumn(name=timestamp,
+                            query=f"""    "{activity_table}"."{timestamp}"  """))
 
         df = datamodel.get_data_frame(query)
-        print(df.head())
 
-        return extended_log
+        # should be sorted by timestamp per default by celonis but we sort it just to be sure
+        sorted_by_timestamp = df.sort_values(timestamp)
+        bag_of_traces = sorted_by_timestamp.groupby(
+            by=case_col).agg({act_col: lambda x: ["START"] + list(x) + ["END"]})  # construct the bag of traces while adding an artificial start and end
+
+        return bag_of_traces
 
     def _get_relations(self, extended_log, noise_threshold):
         """
@@ -103,23 +103,14 @@ class LogSkeleton:
         """
         equivalence = None
         # Get the equivalence relation
-
-        return equivalence
-
-    def get_equivalence(self):
-        """
-        Returns the equivalence relation of the log skeleton.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
-        :return: pandas.DataFrame
-        """
-        equivalence = None
-        # Get the equivalence relation
         query = PQL()
 
-        query.add(PQLColumn(name=case_col, query=f""" "{activity_table}"."{case_col}"  """))
-        query.add(PQLColumn(name=act_col, query=f""" "{activity_table}"."{act_col}"  """))
-        query.add(PQLColumn(name="nr", query=f""" ACTIVATION_COUNT ( "{activity_table}"."{act_col}" )  """))
+        query.add(PQLColumn(name=case_col,
+                  query=f""" "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                  query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="nr", query=f""" ACTIVATION_COUNT ( "{activity_table}"."{act_col}" )  """))
         df = datamodel.get_data_frame(query)
 
         # reverse the order of the rows
