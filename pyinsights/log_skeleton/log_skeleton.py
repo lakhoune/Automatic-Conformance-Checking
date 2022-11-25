@@ -103,18 +103,6 @@ class LogSkeleton:
         """
         equivalence = None
         # Get the equivalence relation
-
-        return equivalence
-
-    def get_equivalence(self):
-        """
-        Returns the equivalence relation of the log skeleton.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
-        :return: pandas.DataFrame
-        """
-        equivalence = None
-        # Get the equivalence relation
         query = PQL()
 
         query.add(PQLColumn(name=case_col,
