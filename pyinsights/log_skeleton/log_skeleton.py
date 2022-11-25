@@ -61,6 +61,19 @@ class LogSkeleton:
         extended_log = None
         # Get the first and last event of each trace
 
+        query = PQL()
+        query.add(PQLColumn(name=act_col,
+                            query=f"""  "{activity_table}"."{act_col}" """))
+        query.add(PQLColumn(name=act_col,
+                            query=f"""  "{activity_table}"."{case_col}" """))
+        query.add(PQLColumn(name=act_col,
+                            query=f"""  MIN ( "{activity_table}"."{timestamp}" ) """))
+        query.add(PQLColumn(name=act_col,
+                            query=f"""  MAX ( "{activity_table}"."{timestamp}" )  """))
+
+        df = datamodel.get_data_frame(query)
+        print(df.head())
+
         return extended_log
 
     def _get_relations(self, extended_log, noise_threshold):
