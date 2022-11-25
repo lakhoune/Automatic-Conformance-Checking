@@ -137,36 +137,42 @@ class TemporalProfiler:
         """
 
         # declaring pql variables
-        source_act = f"""SOURCE("{activity_table}"."{act_col}",{transition_mode})"""
+        source_act = f"""SOURCE("{activity_table}"."{act_col}",{transition_mode} WITH START())"""
 
-        target_act = f"""TARGET("{activity_table}"."{act_col}")"""
+        target_act = f"""TARGET("{activity_table}"."{act_col}", WITH END())"""
 
         waiting = f"""SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
-                    {transition_mode}),
-                    TARGET("{activity_table}"."{timestamp}"))"""
+                    {transition_mode} WITH START()),
+                    TARGET("{activity_table}"."{timestamp}", WITH END()))"""
 
         std_waiting = f"""
                     PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                    {transition_mode}), 
-                                            TARGET("{activity_table}"."{act_col}")),
+                    {transition_mode} WITH START()), 
+                                            TARGET("{activity_table}"."{act_col}", WITH END())),
                                             SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
-                    {transition_mode}),
-                    TARGET("{activity_table}"."{timestamp}")) )
+                    {transition_mode} WITH START()),
+                    TARGET("{activity_table}"."{timestamp}", WITH END())) )
                     """
 
         avg_waiting = f"""
                         PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                        {transition_mode}), 
-                                            TARGET("{activity_table}"."{act_col}")),
+                    {transition_mode} WITH START()), 
+                                            TARGET("{activity_table}"."{act_col}", WITH END())),
                                             SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
-                    {transition_mode}),
-                    TARGET("{activity_table}"."{timestamp}")) )
+                    {transition_mode} WITH START()),
+                    TARGET("{activity_table}"."{timestamp}" , WITH END())) )
                     """
 
 
         query = PQL()
 
-        query.add(PQLColumn(name=case_col, query=f""" SOURCE("{activity_table}"."{case_col}", {transition_mode})  """))
+        # only end transitions are needed for sojourn time
+        filter_start = f""" FILTER SOURCE("{activity_table}"."{act_col}",
+                    {transition_mode} WITH START()) != 'START'  """
+
+        query.add(PQLFilter(filter_start))
+
+        query.add(PQLColumn(name=case_col, query=f""" SOURCE("{activity_table}"."{case_col}", {transition_mode} WITH START())  """))
         query.add(PQLColumn(name="source", query=source_act))
         query.add(PQLColumn(name="target", query=target_act))
         query.add(PQLColumn(name="waiting time", query=waiting))
@@ -201,7 +207,7 @@ class TemporalProfiler:
         if self.connector.has_end_timestamp():
             # queries for sojourn time
             sojourn = f"""SECONDS_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
-                                           {transition_mode}),
+                                           {transition_mode} WITH START()),
                                            Source("{activity_table}"."{end_timestamp}"))"""
 
             std_sojourn = f""" PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}")),
@@ -245,6 +251,9 @@ class TemporalProfiler:
         # get dataframe
         df = datamodel.get_data_frame(query)
 
+        # start/end transitions get na for temporal times
+        df.fillna(value=0, inplace=True)
+
         return df
 
     def deviating_cases(self, sigma=6, deviation_cost=True, extended_view=True):
@@ -259,7 +268,7 @@ class TemporalProfiler:
         # get deviating case ids
         deviations = self.deviations(sigma)
         case_ids = deviations[case_col].drop_duplicates()
-        cols = deviations.columns.values
+        cols = list(deviations.columns)
 
         # load event log and filter to deviating cases
         event_log = self.connector.events()
