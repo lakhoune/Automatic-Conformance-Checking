@@ -173,7 +173,6 @@ class LogSkeleton:
                   query=f"""  TARGET ( "{activity_table}"."{act_col}", ANY_OCCURRENCE[] TO LAST_OCCURRENCE[]) """))
 
         always_after = datamodel.get_data_frame(query)
-        print(always_after.head(50))
         # could be that for two different cases in one a always after b and in the other b always after a so we need. Not sure on that might need to look into that
 
         return always_after[["SOURCE", "TARGET"]]
@@ -187,8 +186,19 @@ class LogSkeleton:
         """
         always_before = None
         # Get the always before relation
+        query = PQL()
+        query.add(
+            PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
+        query.add(PQLColumn(name="SOURCE",
+                  query=f""" SOURCE ( "{activity_table}"."{act_col}" , FIRST_OCCURRENCE[] TO ANY_OCCURRENCE[]) """))
+        query.add(PQLColumn(name="TARGET",
+                  query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
 
-        return always_before
+        always_before = datamodel.get_data_frame(query)
+
+        # could be that for two different cases in one a always after b and in the other b always after a so we need. Not sure on that might need to look into that
+
+        return always_before[["SOURCE", "TARGET"]]
 
     def _get_never_together(self, extended_log, noise_threshold):
         """
