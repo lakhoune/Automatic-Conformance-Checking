@@ -25,59 +25,8 @@ if __name__ == "__main__":
     #id = input()
     connector.set_paramters(model_id="01184974-3604-49fc-b410-ad88143f9802")#, end_timestamp="END_DATE")
 
-
-    query = PQL()
-    query.add(PQLColumn(name=connector.case_col(), query=f"\"{connector.activity_table()}\".\"{connector.case_col()}\""))
-    query.add(PQLColumn(name=connector.activity_col(), query=f"\"{connector.activity_table()}\".\"{connector.activity_col()}\""))
-    query.add(PQLColumn(name="res", query=f"\"{connector.activity_table()}\".\"CE_UO\""))
-    query.add(PQLColumn(name=connector.timestamp(), query=f"\"{connector.activity_table()}\".\"{connector.timestamp()}\""))
-    query += PQLColumn(name="per month", query = f"""
-    PU_COUNT (
-    DOMAIN_TABLE("{connector.activity_table()}"."CE_UO",
-    "{connector.activity_table()}"."ACTIVITY",
-    MONTH("{connector.activity_table()}"."{connector.timestamp()}"),
-    YEAR("{connector.activity_table()}"."{connector.timestamp()}")),
-    "{connector.activity_table()}"."ACTIVITY"  )
-    """)
-    query += PQLColumn(name="per year", query=f"""
-        PU_COUNT (
-        DOMAIN_TABLE("{connector.activity_table()}"."CE_UO",
-        "{connector.activity_table()}"."ACTIVITY",
-        YEAR("{connector.activity_table()}"."{connector.timestamp()}")),
-        "{connector.activity_table()}"."ACTIVITY"  )
-        """)
-
-    filter = f"""
-    FILTER
-    PU_COUNT (
-    DOMAIN_TABLE("{connector.activity_table()}"."CE_UO",
-    "{connector.activity_table()}"."ACTIVITY",
-    MONTH("{connector.activity_table()}"."{connector.timestamp()}"),
-    YEAR("{connector.activity_table()}"."{connector.timestamp()}")),
-    "{connector.activity_table()}"."ACTIVITY"  )
-    >=
-     0.1 * PU_COUNT (
-        DOMAIN_TABLE("{connector.activity_table()}"."CE_UO",
-        "{connector.activity_table()}"."ACTIVITY",
-        YEAR("{connector.activity_table()}"."{connector.timestamp()}")),
-        "{connector.activity_table()}"."ACTIVITY"  )
-
-    AND
-    PU_COUNT (
-    DOMAIN_TABLE("{connector.activity_table()}"."CE_UO",
-    "{connector.activity_table()}"."ACTIVITY",
-    MONTH("{connector.activity_table()}"."{connector.timestamp()}"),
-    YEAR("{connector.activity_table()}"."{connector.timestamp()}")),
-    "{connector.activity_table()}"."ACTIVITY"  )
-    >= 2
-
-    """
-
-    query += PQLFilter(filter)
-    events = connector.datamodel.get_data_frame(query)
-
     res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")
     df = res_profiler.cases_with_batches()
     res_profile = res_profiler.resource_profile()
-    print(res_profile.to_string())
+    print(df.to_string())
 

@@ -38,6 +38,44 @@ pip install packaging
 
 ## Usage Examples
 
+### Resource Profiling Example
+
+Our library pyinsights can compute the resource profile of an event log and
+identify deviating cases based on it. We defined the resource profile as the 
+number of times a resource executes an activity within a certain time-unit.
+
+```python
+    from pyinsights import Connector
+    from pyinsights.organisational_profiling import ResourceProfiler
+    celonis_url = <celonis_url>
+    api_token = <celonis api token>
+
+    # define connector and connect to celonis
+    connector = Connector(api_token=api_token, url=celonis_url, key_type="USER_KEY")
+
+    # choose data model
+    print("Available datamodels:")
+    print(connector.celonis.datamodels)
+    print("Input id of datamodel:")
+    id = input()
+    connector.set_paramters(model_id=id)#, end_timestamp="END_DATE")
+
+    # init resource profiler
+    res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")
+    
+    # compute resource profile (not needed for next step)
+    res_profile = res_profiler.resource_profile()
+    # get cases with batches
+    batches_df = res_profiler.cases_with_batches(time_unit="MONTH",
+                                                 batch_percentage=0.1,
+                                                 min_batch_size=2)
+    batches_df
+```
+
+<p align="center">
+  <img width="" src="docs/images/batch_detection_example.png" />
+</p>
+
 ### Temporal Profiling Example
 
 Our library pyinsights can compute the temporal profile of an event log and
@@ -69,10 +107,10 @@ identify deviating cases based on it.
     deviating_cases_df = temporal_profiler.deviating_cases(sigma = 6, extended_view=False)
     deviating_cases_df
 ```
-
 <p align="center">
   <img width="" src="docs/images/temporal_deviations_example.PNG" />
 </p>
+
 
 ## Citations
 
