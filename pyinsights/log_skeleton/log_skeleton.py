@@ -165,7 +165,7 @@ class LogSkeleton:
         """
         always_after = None
         # Get the always after relation
-
+        get_set_of_activities(extended_log)
         return always_after
 
     def _get_always_before(self, extended_log, noise_threshold):
@@ -221,3 +221,13 @@ def log_subsumes_trace(log, trace):
     """
     # Check if log subsumes trace
     return False
+
+
+def get_set_of_activities(extended_log):
+    """
+    Returns the set of activities of a log.
+    :param log: pandas.DataFrame
+    :return: set
+    """
+    print(extended_log[act_col])
+    return set(extended_log[act_col])
