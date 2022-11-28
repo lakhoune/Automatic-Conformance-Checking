@@ -73,8 +73,7 @@ class LogSkeleton:
         sorted_by_timestamp = df.sort_values(timestamp)
         bag_of_traces = sorted_by_timestamp.groupby(
             by=case_col).agg({act_col: lambda x: ["START"] + list(x) + ["END"]})  # construct the bag of traces while adding an artificial start and end
-
-        return bag_of_traces
+        return bag_of_traces.values
 
     def _get_relations(self, extended_log, noise_threshold):
         """
@@ -165,8 +164,19 @@ class LogSkeleton:
         """
         always_after = None
         # Get the always after relation
-        get_set_of_activities(extended_log)
-        return always_after
+        query = PQL()
+        query.add(
+            PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
+        query.add(PQLColumn(name="SOURCE",
+                  query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
+        query.add(PQLColumn(name="TARGET",
+                  query=f"""  TARGET ( "{activity_table}"."{act_col}", ANY_OCCURRENCE[] TO LAST_OCCURRENCE[]) """))
+
+        always_after = datamodel.get_data_frame(query)
+        print(always_after.head(50))
+        # could be that for two different cases in one a always after b and in the other b always after a so we need. Not sure on that might need to look into that
+
+        return always_after[["SOURCE", "TARGET"]]
 
     def _get_always_before(self, extended_log, noise_threshold):
         """
@@ -221,13 +231,3 @@ def log_subsumes_trace(log, trace):
     """
     # Check if log subsumes trace
     return False
-
-
-def get_set_of_activities(extended_log):
-    """
-    Returns the set of activities of a log.
-    :param log: pandas.DataFrame
-    :return: set
-    """
-    print(extended_log[act_col])
-    return set(extended_log[act_col])
