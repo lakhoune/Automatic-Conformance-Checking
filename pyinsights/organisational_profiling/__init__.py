@@ -1,0 +1,1 @@
+from pyinsights.organisational_profiling.compliance import segregation_of_duties
