@@ -1,1 +1,2 @@
 from pyinsights.organisational_profiling.compliance import segregation_of_duties
+from pyinsights.organisational_profiling.resource_profiler import ResourceProfiler
