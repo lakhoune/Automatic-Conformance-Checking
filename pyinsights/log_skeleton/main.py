@@ -19,6 +19,6 @@ if __name__ == "__main__":
 
     # print("Input id of datamodel:")
     # id = input()
-    # connector.set_paramters(model_id=id)
+    # connector.set_parameters(model_id=id)
 
     log_skeleton = LogSkeleton(connector=connector)
