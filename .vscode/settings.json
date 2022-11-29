@@ -1,3 +1,10 @@
 {
-  "cSpell.words": ["datamodel", "dotenv", "pycelonis", "pyinsights"]
+  "cSpell.words": [
+    "celonis",
+    "datamodel",
+    "datamodels",
+    "dotenv",
+    "pycelonis",
+    "pyinsights"
+  ]
 }
