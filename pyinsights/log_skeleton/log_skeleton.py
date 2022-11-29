@@ -221,8 +221,16 @@ class LogSkeleton:
         """
         directly_follows = None
         # Get the directly follows relation
+        query = PQL()
+        query.add(
+            PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
+        query.add(PQLColumn(name="SOURCE",
+                  query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
+        query.add(PQLColumn(name="TARGET",
+                  query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
+        directly_follows = datamodel.get_data_frame(query)
 
-        return directly_follows
+        return directly_follows[["SOURCE", "TARGET"]]
 
 
 def log_subsumes_log(log1, log2):
