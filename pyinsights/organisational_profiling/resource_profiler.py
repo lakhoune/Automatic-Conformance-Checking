@@ -50,7 +50,7 @@ class ResourceProfiler:
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
         res_col = resource_column
 
-    def resource_profile(self, time_unit = "MONTH", reference_unit="YEAR"):
+    def resource_profile(self, time_unit = "HOURS", reference_unit=None):
         """
         Computes resource profile
         defined as number of times resource executes activity per time_unit
@@ -64,25 +64,71 @@ class ResourceProfiler:
         res_query = f"\"{self.connector.activity_table()}\".\"{res_col}\""
         timestamp_query = f"\"{self.connector.activity_table()}\".\"{self.connector.timestamp()}\""
 
-        # calculate times resource executes activity per month
-        times_per_month = f"""
-            PU_COUNT (
-            DOMAIN_TABLE({res_query},
-            {act_query},
-            {time_unit}({timestamp_query}),
-            YEAR({timestamp_query})),
-            {act_query} )
-            """
+        # build query to group by time unit
+        time_unit_query = ""
+        if time_unit == "SECONDS":
+            time_unit_query += f"""SECONDS({timestamp_query}), """
+            time_unit_query += f"""MINUTES({timestamp_query}), """
+            time_unit_query += f"""HOURS({timestamp_query}), """
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "MINUTES":
+            time_unit_query += f"""MINUTES({timestamp_query}), """
+            time_unit_query += f"""HOURS({timestamp_query}), """
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "HOURS":
+            time_unit_query += f"""HOURS({timestamp_query}), """
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "DAY":
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "MONTH":
+            time_unit_query += f"""MONTH({timestamp_query}), """
 
-        # calculate times resource executes activity per month
+        time_unit_query += f"""YEAR({timestamp_query}) """
 
-        times_per_year = f"""
+        # calculate times resource executes activity per time unit
+        times_per_unit = f"""
                     PU_COUNT (
                     DOMAIN_TABLE({res_query},
                     {act_query},
-                    {reference_unit}({timestamp_query})),
+                    {time_unit_query}),
                     {act_query} )
                     """
+
+        # build query to group by reference unit
+
+        # calculate times resource executes activity per reference unit
+        # build query to group by time unit
+        if reference_unit is not None:
+            reference_unit_query = ""
+            if reference_unit == "MINUTES":
+                reference_unit_query = f"""MINUTES({timestamp_query}), """
+                reference_unit_query = f"""HOURS({timestamp_query}), """
+                reference_unit_query = f"""DAY({timestamp_query}), """
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+            elif reference_unit == "HOURS":
+                reference_unit_query = f"""HOURS({timestamp_query}), """
+                reference_unit_query = f"""DAY({timestamp_query}), """
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+            elif reference_unit == "DAY":
+                reference_unit_query = f"""DAY({timestamp_query}), """
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+            elif reference_unit == "MONTH":
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+
+            reference_unit_query += f"""YEAR({timestamp_query}) """
+
+            # query to count executions per time unit
+            times_per_reference = f"""
+                            PU_COUNT (
+                            DOMAIN_TABLE({res_query},
+                            {act_query},
+                            {reference_unit_query}),
+                            {act_query} )
+                            """
 
         query = PQL()
         query.add(PQLColumn(name=self.connector.case_col(), query=case_query))
@@ -91,14 +137,17 @@ class ResourceProfiler:
         query.add(PQLColumn(name="resource", query=res_query))
         query.add(PQLColumn(name=self.connector.timestamp(),
                             query=timestamp_query))
-        query += PQLColumn(name="# this month", query=times_per_month)
-        query += PQLColumn(name="# this year", query=times_per_year)
+        query += PQLColumn(name=f"# this {time_unit}", query=times_per_unit)
+
+        # include occurrences per reference unit
+        if reference_unit is not None:
+            query += PQLColumn(name=f"# this {reference_unit}", query=times_per_reference)
 
         df = datamodel.get_data_frame(query)
 
         return df
 
-    def cases_with_batches(self, time_unit="MONTH", reference_unit="YEAR", min_batch_size=2, batch_percentage=0.1):
+    def cases_with_batches(self, time_unit="HOURS", reference_unit=None, min_batch_size=2, batch_percentage=0.1):
         """
         Detects cases with batches
         batches are defined as more than batch_percentage * reference_unit occurrences in a time_unit
@@ -112,23 +161,71 @@ class ResourceProfiler:
         res_query = f"\"{self.connector.activity_table()}\".\"{res_col}\""
         timestamp_query = f"\"{self.connector.activity_table()}\".\"{self.connector.timestamp()}\""
 
-        # calculate times resource executes activity per month
-        times_per_month = f"""
+
+       # build query to group by time unit
+        time_unit_query = ""
+        if time_unit == "SECONDS":
+            time_unit_query += f"""SECONDS({timestamp_query}), """
+            time_unit_query += f"""MINUTES({timestamp_query}), """
+            time_unit_query += f"""HOURS({timestamp_query}), """
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "MINUTES":
+            time_unit_query += f"""MINUTES({timestamp_query}), """
+            time_unit_query += f"""HOURS({timestamp_query}), """
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "HOURS":
+            time_unit_query += f"""HOURS({timestamp_query}), """
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "DAY":
+            time_unit_query += f"""DAY({timestamp_query}), """
+            time_unit_query += f"""MONTH({timestamp_query}), """
+        elif time_unit == "MONTH":
+            time_unit_query += f"""MONTH({timestamp_query}), """
+
+        time_unit_query += f"""YEAR({timestamp_query}) """
+
+        # calculate times resource executes activity per time unit
+        times_per_unit = f"""
             PU_COUNT (
             DOMAIN_TABLE({res_query},
             {act_query},
-            {time_unit}({timestamp_query}),
-            YEAR({timestamp_query})),
+            {time_unit_query}),
             {act_query} )
             """
 
-        # calculate times resource executes activity per month
+        # build query to group by reference unit
 
-        times_per_year = f"""
+
+        # calculate times resource executes activity per reference unit
+        # build query to group by time unit
+        if reference_unit is not None:
+            reference_unit_query = ""
+            if reference_unit == "MINUTES":
+                reference_unit_query = f"""MINUTES({timestamp_query}), """
+                reference_unit_query = f"""HOURS({timestamp_query}), """
+                reference_unit_query = f"""DAY({timestamp_query}), """
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+            elif reference_unit == "HOURS":
+                reference_unit_query = f"""HOURS({timestamp_query}), """
+                reference_unit_query = f"""DAY({timestamp_query}), """
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+            elif reference_unit == "DAY":
+                reference_unit_query = f"""DAY({timestamp_query}), """
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+            elif reference_unit == "MONTH":
+                reference_unit_query = f"""MONTH({timestamp_query}), """
+
+            reference_unit_query += f"""YEAR({timestamp_query}) """
+
+            # query to count executions per time unit
+            times_per_reference = f"""
                     PU_COUNT (
                     DOMAIN_TABLE({res_query},
                     {act_query},
-                    {reference_unit}({timestamp_query})),
+                    {reference_unit_query}),
                     {act_query} )
                     """
 
@@ -139,18 +236,20 @@ class ResourceProfiler:
         query.add(PQLColumn(name="resource", query=res_query))
         query.add(PQLColumn(name=self.connector.timestamp(),
                             query=timestamp_query))
-        query += PQLColumn(name="# this month", query=times_per_month)
-        query += PQLColumn(name="# this year", query=times_per_year)
+        query += PQLColumn(name=f"# this {time_unit}", query=times_per_unit)
+
+        # include occurrences per reference unit
+        if reference_unit is not None:
+            query += PQLColumn(name=f"# this {reference_unit}", query=times_per_reference)
+            percent_filter = f"""{times_per_unit} >= {batch_percentage} * {times_per_reference}"""
+            query += PQLFilter(percent_filter)
 
         # filter for batches
-        filter = f"""
-            FILTER
-            {times_per_month} >= {batch_percentage} * {times_per_year}
-            AND
-            {times_per_month} >= {min_batch_size}
+        batch_filter = f"""
+            {times_per_unit} >= {min_batch_size}
             """
 
-        query += PQLFilter(filter)
+        query += PQLFilter(batch_filter)
 
         df = datamodel.get_data_frame(query)
 
