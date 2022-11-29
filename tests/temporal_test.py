@@ -21,7 +21,8 @@ class TemporalTest(unittest.TestCase):
         """
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token, url=self.celonis_url, key_type="USER_KEY")
-        connector.set_paramters(model_id="99e62af6-ce51-445d-a1e6-634aaeafff11", end_timestamp='end_time')
+        connector.set_parameters(
+            model_id="99e62af6-ce51-445d-a1e6-634aaeafff11", end_timestamp='end_time')
         temporal_profiler = TemporalProfiler(connector=connector)
         # compute temporal profile
         profile = temporal_profiler.temporal_profile()
@@ -42,7 +43,8 @@ class TemporalTest(unittest.TestCase):
         """
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token, url=self.celonis_url, key_type="USER_KEY")
-        connector.set_paramters(model_id="99e62af6-ce51-445d-a1e6-634aaeafff11")
+        connector.set_parameters(
+            model_id="99e62af6-ce51-445d-a1e6-634aaeafff11")
         temporal_profiler = TemporalProfiler(connector=connector)
         # compute temporal profile
         profile = temporal_profiler.temporal_profile()
@@ -65,7 +67,8 @@ class TemporalTest(unittest.TestCase):
         """
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token, url=self.celonis_url, key_type="USER_KEY")
-        connector.set_paramters(model_id="32b0abb8-bbcf-4700-8123-d11443e57bdd", end_timestamp="end_time")
+        connector.set_parameters(
+            model_id="32b0abb8-bbcf-4700-8123-d11443e57bdd", end_timestamp="end_time")
         temporal_profiler = TemporalProfiler(connector=connector)
 
         # compute deviating cases

@@ -58,7 +58,7 @@ identify deviating cases based on it.
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
-    connector.set_paramters(model_id=id)#, end_timestamp="END_DATE")
+    connector.set_parameters(model_id=id)#, end_timestamp="END_DATE")
 
     # init temporal profiler
     temporal_profiler = TemporalProfiler(connector=connector)
