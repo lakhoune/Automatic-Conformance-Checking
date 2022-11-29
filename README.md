@@ -58,7 +58,7 @@ identify deviating cases based on it.
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
-    connector.set_paramters(model_id=id)#, end_timestamp="END_DATE")
+    connector.set_parameters(model_id=id)#, end_timestamp="END_DATE")
 
     # init temporal profiler
     temporal_profiler = TemporalProfiler(connector=connector)
@@ -80,3 +80,4 @@ Pyinsights implements some approaches on conformance checking first suggested in
 Some of the paper we used include:
 
 - [Temporal Conformance Checking at Runtime based on Time-infused Process Models](https://arxiv.org/abs/2008.07262)
+- [Log Skeletons: A Classification Approach to Process Discovery](https://arxiv.org/abs/1806.08247)
