@@ -41,7 +41,7 @@ pip install packaging
 ### Resource Profiling Example
 
 Our library pyinsights can compute the resource profile of an event log and
-identify deviating cases based on it. We defined the resource profile as the 
+identify deviating cases based on it. We define the resource profile as the 
 number of times a resource executes an activity within a certain time-unit.
 
 ```python
@@ -67,6 +67,7 @@ number of times a resource executes an activity within a certain time-unit.
     res_profile = res_profiler.resource_profile()
     # get cases with batches
     batches_df = res_profiler.cases_with_batches(time_unit="MONTH",
+                                                 reference_unit="YEAR",
                                                  batch_percentage=0.1,
                                                  min_batch_size=2)
     batches_df
@@ -74,6 +75,16 @@ number of times a resource executes an activity within a certain time-unit.
 
 <p align="center">
   <img width="" src="docs/images/batch_detection_example.png" />
+</p>
+
+You can also identify cases violating the four-eyes principle.
+````python
+    from pyinsights.organisational_profiling import segregation_of_duties
+    segregation_of_duties(connector=connector, resource_column="CE_UO")
+````
+
+<p align="center">
+  <img src="docs/images/4-eyes-example.png" />
 </p>
 
 ### Temporal Profiling Example

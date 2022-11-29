@@ -22,6 +22,12 @@ class ResourceProfiler:
     end_timestamp = None
 
     def __init__(self, connector, resource_column):
+        """
+        init class
+        :param connector: pycelonis.Connector
+        :param resource_column: name of resource column in log
+        """
+
         # init class
         global datamodel
         global activity_table
@@ -44,10 +50,10 @@ class ResourceProfiler:
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
         res_col = resource_column
 
-    def resource_profile(self, time_unit = "MONTH", reference="YEAR"):
+    def resource_profile(self, time_unit = "MONTH", reference_unit="YEAR"):
         """
         Computes resource profile
-
+        defined as number of times resource executes activity per time_unit
         :returns df: resource profile as df
         :type df: pandas.core.Dataframe
         """
@@ -74,7 +80,7 @@ class ResourceProfiler:
                     PU_COUNT (
                     DOMAIN_TABLE({res_query},
                     {act_query},
-                    {reference}({timestamp_query})),
+                    {reference_unit}({timestamp_query})),
                     {act_query} )
                     """
 
@@ -92,10 +98,10 @@ class ResourceProfiler:
 
         return df
 
-    def cases_with_batches(self, time_unit="MONTH", reference="YEAR", min_batch_size=2, batch_percentage=0.1):
+    def cases_with_batches(self, time_unit="MONTH", reference_unit="YEAR", min_batch_size=2, batch_percentage=0.1):
         """
         Detects cases with batches
-
+        batches are defined as more than batch_percentage * reference_unit occurrences in a time_unit
         :returns df: cases with batches as df
         :type df: pandas.core.Dataframe
         """
@@ -122,7 +128,7 @@ class ResourceProfiler:
                     PU_COUNT (
                     DOMAIN_TABLE({res_query},
                     {act_query},
-                    {reference}({timestamp_query})),
+                    {reference_unit}({timestamp_query})),
                     {act_query} )
                     """
 
