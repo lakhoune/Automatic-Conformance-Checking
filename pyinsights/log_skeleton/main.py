@@ -1,11 +1,11 @@
 import os
 import pm4py
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from pyinsights.log_skeleton import LogSkeleton
 from pyinsights import Connector
 
 dirname = os.path.dirname(__file__)
-load_dotenv(os.path.join(dirname, "../../.env"))
+# load_dotenv(os.path.join(dirname, "../../.env"))
 
 if __name__ == "__main__":
     celonis_url = "https://academic-rastoder-erdzan-rwth-aachen-de.eu-2.celonis.cloud/"
@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
     # print("Input id of datamodel:")
     # id = input()
-    # connector.set_paramters(model_id=id)
+    # connector.set_parameters(model_id=id)
 
     log_skeleton = LogSkeleton(connector=connector)
+    log_skeleton.get_log_skeleton(noise_threshold=0.5)

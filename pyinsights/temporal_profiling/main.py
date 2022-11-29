@@ -25,7 +25,20 @@ if __name__ == "__main__":
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
-    connector.set_paramters(model_id=id)  # , end_timestamp="END_DATE")
+
+    connector.set_parameters(model_id=id)  # , end_timestamp="END_DATE")
+
+    # init temporal profiler
+    temporal_profiler = TemporalProfiler(connector=connector)
+
+    #compute temporal profile (not necessary for next steps)
+    temporal_profile = temporal_profiler.temporal_profile()
+    # compute deviating cases with deviation cost
+    deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
+    # compute deviating events
+    deviations = temporal_profiler.deviations()
+
+
 
     # init resource profiler
     res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")

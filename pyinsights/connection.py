@@ -105,7 +105,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
         return timestamp
 
-    def set_paramters(self, pool_id=None, model_id=None, end_timestamp=None):
+    def set_parameters(self, pool_id=None, model_id=None, end_timestamp=None):
         """
             sets celonis data parameters
             :param model_id: id of datamodel
