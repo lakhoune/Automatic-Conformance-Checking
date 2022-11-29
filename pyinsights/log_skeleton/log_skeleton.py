@@ -95,7 +95,7 @@ class LogSkeleton:
 
     def _get_equivalence(self, extended_log, noise_threshold):
         """
-        Returns the equivalence relation of the log skeleton.
+        Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
         :return: pandas.DataFrame
@@ -151,13 +151,13 @@ class LogSkeleton:
                             # print(act2)
                             # print("")
 
-        print(activities_of_cases_with_same_max_act)
+        # print(activities_of_cases_with_same_max_act)
 
         return equivalence
 
     def _get_always_after(self, extended_log, noise_threshold):
         """
-        Returns the always after relation of the log skeleton.
+        Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
         :return: pandas.DataFrame
@@ -179,7 +179,7 @@ class LogSkeleton:
 
     def _get_always_before(self, extended_log, noise_threshold):
         """
-        Returns the always before relation of the log skeleton.
+        Returns the always before relation of the log skeleton.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
         :return: pandas.DataFrame
@@ -202,7 +202,7 @@ class LogSkeleton:
 
     def _get_never_together(self, extended_log, noise_threshold):
         """
-        Returns the never together relation of the log skeleton.
+        Returns the never together relation of the log skeleton. two activities are related if and only if they do not occur together in any trace.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
         :return: pandas.DataFrame
@@ -214,15 +214,23 @@ class LogSkeleton:
 
     def _get_directly_follows(self, extended_log, noise_threshold):
         """
-        Returns the directly follows relation of the log skeleton.
+        Returns the directly follows relation of the log skeleton. two activities are related if and only if an occurrence the first activity can directly be followed by an occurrence of the second.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
         directly_follows = None
         # Get the directly follows relation
+        query = PQL()
+        query.add(
+            PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
+        query.add(PQLColumn(name="SOURCE",
+                  query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
+        query.add(PQLColumn(name="TARGET",
+                  query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
+        directly_follows = datamodel.get_data_frame(query)
 
-        return directly_follows
+        return directly_follows[["SOURCE", "TARGET"]]
 
 
 def log_subsumes_log(log1, log2):
