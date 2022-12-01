@@ -30,7 +30,8 @@ class TemporalProfiler:
         global timestamp
         global transition_mode
         global end_timestamp
-        
+        global has_endtime
+
         self.connector = connector
 
         # init process variables from connector
@@ -40,8 +41,9 @@ class TemporalProfiler:
         act_col = self.connector.activity_col()
         timestamp = self.connector.timestamp()
         end_timestamp = self.connector.end_timestamp()
+        has_endtime = self.connector.has_end_timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
-        
+
     def temporal_profile(self):
         """
         Computes temporal profile
@@ -71,7 +73,7 @@ class TemporalProfiler:
                             """
 
         avg_waiting = f"""  PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                                {transition_mode}), 
+                                {transition_mode}),
                                                     TARGET("{activity_table}"."{act_col}")),
                                                     {waiting} )
                             """
@@ -95,7 +97,7 @@ class TemporalProfiler:
         # pql returns profile for every occurrence of activity
         waiting_times.drop_duplicates(subset=["source", "target"], inplace=True)
 
-        if self.connector.has_end_timestamp():
+        if has_endtime:
             # queries for sojourn
             sojourn = f"""SECONDS_BETWEEN("{activity_table}"."{timestamp}", "{activity_table}"."{end_timestamp}")"""
 
@@ -147,7 +149,7 @@ class TemporalProfiler:
 
         std_waiting = f"""
                     PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                    {transition_mode} WITH START()), 
+                    {transition_mode} WITH START()),
                                             TARGET("{activity_table}"."{act_col}", WITH END())),
                                             SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode} WITH START()),
@@ -156,7 +158,7 @@ class TemporalProfiler:
 
         avg_waiting = f"""
                         PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                    {transition_mode} WITH START()), 
+                    {transition_mode} WITH START()),
                                             TARGET("{activity_table}"."{act_col}", WITH END())),
                                             SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode} WITH START()),
@@ -188,11 +190,11 @@ class TemporalProfiler:
         # compute z-score of duration
         query.add(PQLColumn(name="z-score (waiting time)", query=f"""
                 case when {std_waiting} = 0 then 0
-                 
+
                  else
 
                  ({waiting} - {avg_waiting}) / ({std_waiting})
-                 
+
                 end
                  """))
 
@@ -204,7 +206,7 @@ class TemporalProfiler:
                     """
 
         # checks if log has end_timestamps and computes statistics on sojourn time
-        if self.connector.has_end_timestamp():
+        if has_endtime:
             # queries for sojourn time
             sojourn = f"""SECONDS_BETWEEN(SOURCE("{activity_table}"."{timestamp}",
                                            {transition_mode} WITH START()),
@@ -283,7 +285,7 @@ class TemporalProfiler:
             deviations = deviations.merge(deviating_cases.set_index(case_col), on=case_col, how="left")
 
             # factor sojourn time into deviation cost if applicable
-            if self.connector.has_end_timestamp():
+            if has_endtime:
                 deviations["deviation cost"] = deviations["z-score (waiting time)"] + deviations["z-score (sojourn)"]\
                                                + deviations["alignment cost"]
             else:

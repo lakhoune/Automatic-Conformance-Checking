@@ -37,6 +37,7 @@ class ResourceProfiler:
         global transition_mode
         global end_timestamp
         global res_col
+        global has_endtime
 
         self.connector = connector
 
@@ -49,6 +50,7 @@ class ResourceProfiler:
         end_timestamp = self.connector.end_timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
         res_col = resource_column
+        has_endtime = self.connector.has_end_timestamp()
 
     def resource_profile(self, time_unit="HOURS", reference_unit=None):
         """
@@ -59,10 +61,10 @@ class ResourceProfiler:
         """
 
         # pql queries
-        case_query = f"\"{self.connector.activity_table()}\".\"{self.connector.case_col()}\""
-        act_query = f"\"{self.connector.activity_table()}\".\"{self.connector.activity_col()}\""
-        res_query = f"\"{self.connector.activity_table()}\".\"{res_col}\""
-        timestamp_query = f"\"{self.connector.activity_table()}\".\"{self.connector.timestamp()}\""
+        case_query = f"\"{activity_table}\".\"{case_col}\""
+        act_query = f"\"{activity_table}\".\"{act_col}\""
+        res_query = f"\"{activity_table}\".\"{res_col}\""
+        timestamp_query = f"\"{activity_table}\".\"{timestamp}\""
 
         # build query to group by time unit
         time_unit_query = ""
@@ -131,11 +133,11 @@ class ResourceProfiler:
                             """
 
         query = PQL()
-        query.add(PQLColumn(name=self.connector.case_col(), query=case_query))
-        query.add(PQLColumn(name=self.connector.activity_col(),
+        query.add(PQLColumn(name=case_col, query=case_query))
+        query.add(PQLColumn(name=act_col,
                             query=act_query))
         query.add(PQLColumn(name="resource", query=res_query))
-        query.add(PQLColumn(name=self.connector.timestamp(),
+        query.add(PQLColumn(name=timestamp,
                             query=timestamp_query))
         query += PQLColumn(name=f"# this {time_unit}", query=times_per_unit)
 
@@ -157,10 +159,11 @@ class ResourceProfiler:
         :return: pandas.core.Dataframe
         """
         # pql queries
-        case_query = f"\"{self.connector.activity_table()}\".\"{self.connector.case_col()}\""
-        act_query = f"\"{self.connector.activity_table()}\".\"{self.connector.activity_col()}\""
-        res_query = f"\"{self.connector.activity_table()}\".\"{res_col}\""
-        timestamp_query = f"\"{self.connector.activity_table()}\".\"{self.connector.timestamp()}\""
+        case_query = f"\"{activity_table}\".\"{case_col}\""
+        act_query = f"\"{activity_table}\".\"{act_col}\""
+        res_query = f"\"{activity_table}\".\"{res_col}\""
+        timestamp_query = f"\"{activity_table}\".\"{timestamp}\""
+        endtime_query = f"\"{activity_table}\".\"{end_timestamp}\""
 
         # build query to group by time unit
         time_unit_query = ""
@@ -229,12 +232,14 @@ class ResourceProfiler:
                             """
 
         query = PQL()
-        query.add(PQLColumn(name=self.connector.case_col(), query=case_query))
-        query.add(PQLColumn(name=self.connector.activity_col(),
+        query.add(PQLColumn(name=case_col, query=case_query))
+        query.add(PQLColumn(name=act_col,
                             query=act_query))
         query.add(PQLColumn(name="resource", query=res_query))
-        query.add(PQLColumn(name=self.connector.timestamp(),
+        query.add(PQLColumn(name=timestamp,
                             query=timestamp_query))
+        if has_endtime:
+            query += PQLColumn(name=end_timestamp, query=endtime_query)
         query += PQLColumn(name=f"# this {time_unit}", query=times_per_unit)
 
         # include occurrences per reference unit
@@ -259,6 +264,7 @@ class ResourceProfiler:
 
         """
         returns cases with batches according to occurrences per time_unit, can also identify batch type
+        type one of [ "batching at start", batching at end", "sequential", "concurrent" ]
         :param time_unit: in ["SECONDS", "MINUTES", "HOURS", "DAY", "MONTH"]
         :param reference_unit: in ["MINUTES", "HOURS", "DAY", "MONTH"]
         :param min_batch_size: minimum size of a batch
@@ -276,7 +282,7 @@ class ResourceProfiler:
         if batch_types:
             # get groups
             df_grouped, groups = self._group_by_batches(df, time_unit)
-            # if grouping is wanted identify batches on grouped_df
+            # if grouping is wanted, identify batches on grouped_df
             if grouped_by_batches:
                 df_with_types = self._identify_batch_type(df_grouped, groups)
                 grouped_by_batches = False
@@ -321,9 +327,9 @@ class ResourceProfiler:
         # get groups as arrays in list
         groups = [group.values for group in grouped.groups.values()]
         # flatten groups to get events
-        flattended = [event for group in groups for event in group]
+        flattened = [event for group in groups for event in group]
         # reindex df
-        df = df.reindex(flattended)
+        df = df.reindex(flattened)
 
         return (df, groups)
 
@@ -331,42 +337,57 @@ class ResourceProfiler:
         """
         computes the batch type within the groups
         all events have to satisfy type for group to get type
-        type one of [ "batching at start", batching at end", "concurrent" ]
+        type one of [ "batching at start", batching at end", "sequential", "concurrent" ]
         :param df: df
         :param groups: list of arrays
         :return: pandas.core.Dataframe
         """
         df["batch type"] = ""
+
+
         # iterate over groups
+        i = 0
+        target = len(groups)
         for group in groups:
+            print(f"iteration: {i}/{target}")
             # remember timestamps of last iteration
             last_start = 0
             last_end = 0
             batching_at_start = True
-            batching_at_end = self.connector.has_end_timestamp()
+            batching_at_end = has_endtime
+            sequential = has_endtime
             group_type = "concurrent"
 
+            # sort batch in df by timestamp
+            group.sort()
             # iterate over events in group
             for event in group:
+                current_start = 0
+                current_end = 0
                 # if first iteration, set timestamps
                 if last_start == 0:
-                    last_start = df.iloc[event][self.connector.timestamp()]
+                    last_start = df.loc[event][timestamp]
+                    current_start = df.loc[event][timestamp]
                 else:
-                    current_start = df.iloc[event][self.connector.timestamp()]
+                    current_start = df.loc[event][timestamp]
                     # if timestamp is different from last iteration --> no batching at start
                     if last_start != current_start:
                         batching_at_start = False
 
                 # if log has end_timestamp
-                if self.connector.has_end_timestamp():
+                if has_endtime:
                     # if first iteration, set timestamp
                     if last_end == 0:
-                        last_end = df.iloc[event][self.connector.timestamp()]
+                        last_end = df.loc[event][end_timestamp]
+                        current_end = df.loc[event][end_timestamp]
                     else:
-                        current_end = df.iloc[event][self.connector.timestamp()]
+                        current_end = df.loc[event][end_timestamp]
                         # if timestamp is different from last iteration --> no batching at end
                         if last_end != current_end:
                             batching_at_end = False
+                        # if current activity started before last one ended --> not sequential
+                        if current_start < last_end:
+                            sequential = False
             # check batch type
             if batching_at_start:
                 # if both at start & at end --> simultaneous
@@ -378,9 +399,11 @@ class ResourceProfiler:
             # check for batching at end
             elif batching_at_end:
                 group_type = "batching at end"
-
+            # check for sequential batching
+            elif sequential:
+                group_type = "sequential"
             # set batch type
-            df.iloc[group, df.columns.get_loc('batch type')] = group_type
-
+            df.loc[group, df.columns.get_loc('batch type')] = group_type
+            i += 1
         return df
 

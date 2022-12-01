@@ -24,32 +24,17 @@ if __name__ == "__main__":
     print("Available datamodels:")
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
-    id = input()
+    #id = input()
 
-    connector.set_parameters(model_id=id)  # , end_timestamp="END_DATE")
-
-    # init temporal profiler
-    temporal_profiler = TemporalProfiler(connector=connector)
-
-    #compute temporal profile (not necessary for next steps)
-    temporal_profile = temporal_profiler.temporal_profile()
-    # compute deviating cases with deviation cost
-    deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
-    # compute deviating events
-    deviations = temporal_profiler.deviations()
-
-
+    connector.set_parameters(model_id="376145f1-790d-4deb-8e20-083a4dfd7ca7", end_timestamp="END_DATE")
 
     # init resource profiler
     res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")
 
     # compute resource profile (not needed for next step)
-    res_profile = res_profiler.resource_profile()
+    #res_profile = res_profiler.resource_profile(time_unit="HOURS", reference_unit="DAY")
     # get cases with batches
-    batches_df = res_profiler.cases_with_batches(time_unit="MONTH",
-                                                 reference_unit="YEAR",
-                                                 batch_percentage=0.1,
-                                                 min_batch_size=2)
-    from pyinsights.organisational_profiling import segregation_of_duties
-    print(segregation_of_duties(connector=connector, resource_column="CE_UO").head(n=10).to_string())
+    df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY", min_batch_size=2, batch_percentage=0.1
+                       , grouped_by_batches=True, batch_types=True)
+    print(df.head(n=500).to_string())
 
