@@ -22,6 +22,10 @@ class TemporalProfiler:
     end_timestamp = None
 
     def __init__(self, connector):
+        """
+        constructor
+        :param connector: pyinsights.Connector
+        """
         # init class
         global datamodel
         global activity_table
@@ -48,8 +52,8 @@ class TemporalProfiler:
         """
         Computes temporal profile
 
-        :returns df: waiting time and sojourn times as dataframes
-        :type df: pandas.core.Dataframe
+        :returns df: waiting time and sojourn times as dataframes´within dict
+        :type df: dict {'waiting times': waiting_times, 'sojourn times': sojourn_times}
         """
 
         # init vars
@@ -127,7 +131,7 @@ class TemporalProfiler:
 
         return temporal_profile
 
-    def deviations(self, sigma=6):
+    def _deviations(self, sigma=6):
         """
         Computes deviating transitions
 
@@ -268,7 +272,7 @@ class TemporalProfiler:
         """
 
         # get deviating case ids
-        deviations = self.deviations(sigma)
+        deviations = self._deviations(sigma)
         case_ids = deviations[case_col].drop_duplicates()
         cols = list(deviations.columns)
 
