@@ -58,7 +58,7 @@ number of times a resource executes an activity within a certain time-unit.
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
-    connector.set_paramters(model_id=id)#, end_timestamp="END_DATE")
+    connector.set_parameters(model_id=id)#, end_timestamp="END_DATE")
 
     # init resource profiler
     res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")
