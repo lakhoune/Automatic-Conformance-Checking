@@ -22,6 +22,10 @@ class TemporalProfiler:
     end_timestamp = None
 
     def __init__(self, connector):
+        """
+        constructor
+        :param connector: pyinsights.Connector
+        """
         # init class
         global datamodel
         global activity_table
@@ -30,7 +34,7 @@ class TemporalProfiler:
         global timestamp
         global transition_mode
         global end_timestamp
-        
+
         self.connector = connector
 
         # init process variables from connector
@@ -41,13 +45,13 @@ class TemporalProfiler:
         timestamp = self.connector.timestamp()
         end_timestamp = self.connector.end_timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
-        
+
     def temporal_profile(self):
         """
         Computes temporal profile
 
-        :returns df: waiting time and sojourn times as dataframes
-        :type df: pandas.core.Dataframe
+        :returns df: waiting time and sojourn times as dataframes´within dict
+        :type df: dict {'waiting times': waiting_times, 'sojourn times': sojourn_times}
         """
 
         # init vars
@@ -71,7 +75,7 @@ class TemporalProfiler:
                             """
 
         avg_waiting = f"""  PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                                {transition_mode}), 
+                                {transition_mode}),
                                                     TARGET("{activity_table}"."{act_col}")),
                                                     {waiting} )
                             """
@@ -125,7 +129,7 @@ class TemporalProfiler:
 
         return temporal_profile
 
-    def deviations(self, sigma=6):
+    def _deviations(self, sigma=6):
         """
         Computes deviating transitions
 
@@ -147,7 +151,7 @@ class TemporalProfiler:
 
         std_waiting = f"""
                     PU_STDEV ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                    {transition_mode} WITH START()), 
+                    {transition_mode} WITH START()),
                                             TARGET("{activity_table}"."{act_col}", WITH END())),
                                             SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode} WITH START()),
@@ -156,7 +160,7 @@ class TemporalProfiler:
 
         avg_waiting = f"""
                         PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}",
-                    {transition_mode} WITH START()), 
+                    {transition_mode} WITH START()),
                                             TARGET("{activity_table}"."{act_col}", WITH END())),
                                             SECONDS_BETWEEN(SOURCE("{activity_table}"."{end_timestamp}",
                     {transition_mode} WITH START()),
@@ -188,11 +192,11 @@ class TemporalProfiler:
         # compute z-score of duration
         query.add(PQLColumn(name="z-score (waiting time)", query=f"""
                 case when {std_waiting} = 0 then 0
-                 
+
                  else
 
                  ({waiting} - {avg_waiting}) / ({std_waiting})
-                 
+
                 end
                  """))
 
@@ -266,7 +270,7 @@ class TemporalProfiler:
         """
 
         # get deviating case ids
-        deviations = self.deviations(sigma)
+        deviations = self._deviations(sigma)
         case_ids = deviations[case_col].drop_duplicates()
         cols = list(deviations.columns)
 
