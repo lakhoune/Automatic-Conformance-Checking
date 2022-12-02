@@ -136,22 +136,23 @@ class LogSkeleton:
 
         activities_of_cases_with_same_max_act = {}
         # get the activities in each case where a pair of activities has the same activation count
-        for case in max_act:
-            for act in max_act[case]:
-                for act2 in max_act[case]:
-                    if act != act2:
-                        if list(act.values())[0] == list(act2.values())[0]:
-                            if case in activities_of_cases_with_same_max_act:
-                                activities_of_cases_with_same_max_act[case].append(
-                                    {list(act.keys())[0]: list(act2.keys())[0]})
+        for activities in max_act.values():
+            for act1 in activities:
+                activity_name_1 = list(act1.keys())[0]
+                activity_count_1 = list(act1.values())[0]
+                for act2 in activities:
+                    activity_name_2 = list(act2.keys())[0]
+                    activity_count_2 = list(act2.values())[0]
+                    if activity_name_1 != activity_name_2:
+                        if activity_count_1 == activity_count_2:
+                            candidate_pair = (activity_name_1, activity_name_2)
+                            if candidate_pair in activities_of_cases_with_same_max_act and activity_count_1 != activities_of_cases_with_same_max_act[candidate_pair]:
+                                activities_of_cases_with_same_max_act.pop(
+                                    candidate_pair)
                             else:
-                                activities_of_cases_with_same_max_act[case] = [
-                                    {list(act.keys())[0]: list(act2.keys())[0]}]
-                            # print(act)
-                            # print(act2)
-                            # print("")
+                                activities_of_cases_with_same_max_act[candidate_pair] = activity_count_1
 
-        # print(activities_of_cases_with_same_max_act)
+        print(activities_of_cases_with_same_max_act)
 
         return equivalence
 
