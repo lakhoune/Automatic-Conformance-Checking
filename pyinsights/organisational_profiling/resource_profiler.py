@@ -107,19 +107,19 @@ class ResourceProfiler:
         if reference_unit is not None:
             reference_unit_query = ""
             if reference_unit == "MINUTES":
-                reference_unit_query = f"""MINUTES({timestamp_query}), """
-                reference_unit_query = f"""HOURS({timestamp_query}), """
-                reference_unit_query = f"""DAY({timestamp_query}), """
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""MINUTES({timestamp_query}), """
+                reference_unit_query += f"""HOURS({timestamp_query}), """
+                reference_unit_query += f"""DAY({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
             elif reference_unit == "HOURS":
-                reference_unit_query = f"""HOURS({timestamp_query}), """
-                reference_unit_query = f"""DAY({timestamp_query}), """
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""HOURS({timestamp_query}), """
+                reference_unit_query += f"""DAY({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
             elif reference_unit == "DAY":
-                reference_unit_query = f"""DAY({timestamp_query}), """
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""DAY({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
             elif reference_unit == "MONTH":
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
 
             reference_unit_query += f"""YEAR({timestamp_query}) """
 
@@ -206,19 +206,19 @@ class ResourceProfiler:
         if reference_unit is not None:
             reference_unit_query = ""
             if reference_unit == "MINUTES":
-                reference_unit_query = f"""MINUTES({timestamp_query}), """
-                reference_unit_query = f"""HOURS({timestamp_query}), """
-                reference_unit_query = f"""DAY({timestamp_query}), """
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""MINUTES({timestamp_query}), """
+                reference_unit_query += f"""HOURS({timestamp_query}), """
+                reference_unit_query += f"""DAY({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
             elif reference_unit == "HOURS":
-                reference_unit_query = f"""HOURS({timestamp_query}), """
-                reference_unit_query = f"""DAY({timestamp_query}), """
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""HOURS({timestamp_query}), """
+                reference_unit_query += f"""DAY({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
             elif reference_unit == "DAY":
-                reference_unit_query = f"""DAY({timestamp_query}), """
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""DAY({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
             elif reference_unit == "MONTH":
-                reference_unit_query = f"""MONTH({timestamp_query}), """
+                reference_unit_query += f"""MONTH({timestamp_query}), """
 
             reference_unit_query += f"""YEAR({timestamp_query}) """
 
@@ -331,7 +331,7 @@ class ResourceProfiler:
         # reindex df
         df = df.reindex(flattened)
 
-        return (df, groups)
+        return df, groups
 
     def _identify_batch_type(self, df, groups):
         """
@@ -346,7 +346,7 @@ class ResourceProfiler:
 
 
         # iterate over groups
-        i = 0
+        i = 1
         target = len(groups)
         for group in groups:
             print(f"iteration: {i}/{target}")
@@ -403,7 +403,7 @@ class ResourceProfiler:
             elif sequential:
                 group_type = "sequential"
             # set batch type
-            df.loc[group, df.columns.get_loc('batch type')] = group_type
+            df.loc[group, "batch type"] = group_type
             i += 1
         return df
 
