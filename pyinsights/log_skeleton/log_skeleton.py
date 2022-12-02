@@ -138,8 +138,9 @@ class LogSkeleton:
         for activities in max_act.values():
             activities_of_cases_with_same_max_act = get_candidate_pairs(
                 activities=activities, activities_of_cases_with_same_max_act=activities_of_cases_with_same_max_act)
+
         equivalence = [pair for pair, count in activities_of_cases_with_same_max_act.items(
-        ) if count is not None]
+        ) if count is not None]  # remove pairs with None values
         equivalence.sort()
         # expected = [('examine casually', 'pay compensation'), ('examine thoroughly', 'register request'), ('pay compensation', 'register request'),('register request', 'reject request')]
         print(activities_of_cases_with_same_max_act)
