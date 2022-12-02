@@ -135,23 +135,13 @@ class LogSkeleton:
                 max_act[row[case_col]] = [{row[act_col]: row["nr"]}]
 
         activities_of_cases_with_same_max_act = {}
-        # get the activities in each case where a pair of activities has the same activation count
         for activities in max_act.values():
-            for act1 in activities:
-                activity_name_1 = list(act1.keys())[0]
-                activity_count_1 = list(act1.values())[0]
-                for act2 in activities:
-                    activity_name_2 = list(act2.keys())[0]
-                    activity_count_2 = list(act2.values())[0]
-                    if activity_name_1 != activity_name_2:
-                        if activity_count_1 == activity_count_2:
-                            candidate_pair = (activity_name_1, activity_name_2)
-                            if candidate_pair in activities_of_cases_with_same_max_act and activity_count_1 != activities_of_cases_with_same_max_act[candidate_pair]:
-                                activities_of_cases_with_same_max_act.pop(
-                                    candidate_pair)
-                            else:
-                                activities_of_cases_with_same_max_act[candidate_pair] = activity_count_1
-
+            activities_of_cases_with_same_max_act = get_candidate_pairs(
+                activities=activities, activities_of_cases_with_same_max_act=activities_of_cases_with_same_max_act)
+        equivalence = [pair for pair, count in activities_of_cases_with_same_max_act.items(
+        ) if count is not None]
+        equivalence.sort()
+        # expected = [('examine casually', 'pay compensation'), ('examine thoroughly', 'register request'), ('pay compensation', 'register request'),('register request', 'reject request')]
         print(activities_of_cases_with_same_max_act)
 
         return equivalence
@@ -250,3 +240,27 @@ def log_subsumes_trace(log, trace):
     """
     # Check if log subsumes trace
     return False
+
+
+def get_candidate_pairs(activities, activities_of_cases_with_same_max_act):
+    for act1 in activities:
+        activity_name_1 = list(act1.keys())[0]  # name of activity
+        # how often it occurs in the trace
+        activity_count_1 = list(act1.values())[0]
+        for act2 in activities:
+            activity_name_2 = list(act2.keys())[0]  # name of activity
+            # how often it occurs in the trace
+            activity_count_2 = list(act2.values())[0]
+            if activity_name_1 < activity_name_2:  # relation is symmetrical. This ensures that we dont recheck existing pairs. Furthermore it ensures that the keys will be sorted
+                if activity_count_1 == activity_count_2:
+                    # as they both occur equally often in the current trace they are potential candidates
+                    candidate_pair = (activity_name_1, activity_name_2)
+                    if candidate_pair in activities_of_cases_with_same_max_act:
+                        existing_pair_count = activities_of_cases_with_same_max_act[
+                            candidate_pair]  # how often it has occured before.
+                        if existing_pair_count is not None and existing_pair_count != activity_count_1:
+                            # setting to None means we are not reconsidering it in the future
+                            activities_of_cases_with_same_max_act[candidate_pair] = None
+                    else:
+                        activities_of_cases_with_same_max_act[candidate_pair] = activity_count_1
+    return activities_of_cases_with_same_max_act
