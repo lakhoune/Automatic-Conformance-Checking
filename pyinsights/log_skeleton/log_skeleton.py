@@ -143,7 +143,6 @@ class LogSkeleton:
         ) if count is not None]  # remove pairs with None values
         equivalence.sort()
         # expected = [('examine casually', 'pay compensation'), ('examine thoroughly', 'register request'), ('pay compensation', 'register request'),('register request', 'reject request')]
-        print(activities_of_cases_with_same_max_act)
 
         return equivalence
 
