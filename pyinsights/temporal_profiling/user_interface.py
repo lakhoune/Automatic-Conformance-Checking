@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 import plotly.express as px
-from pyinsights.main import Temp
+
 
 st.header("Automatic-Conformance-Checking")
 with open('style.css') as f:
@@ -14,9 +14,9 @@ with col1:
     title = st.text_input('Api Key', 'Enter Api Key')
     st.text("Log Skeleton")
     st.text("Temporal")
-    
+
 with col2:
-    
+
     st.button('Confirm')
     load=st.checkbox(" ")
     load1=st.checkbox("  ")
@@ -39,17 +39,17 @@ with col3:
     "Name":["Mango","Apple","Banana"],
     "Quantity":[45,38,90]
     }
-  
+
     df=pd.DataFrame(data)
 #    load=st.button('Load Data')
-    
+
 if 'load_state' not in st.session_state:
     st.session_state.load_state = False
 
 if load or st.session_state.load_state:
     st.session_state.load_state= True
     st.write(df)
-    
+
     opt=st.radio('Plot type:',['Bar','Pie'])
 with col1:
  if opt=='Bar':
@@ -66,6 +66,6 @@ with col1:
         fig=px.pie(df1, names='Name', values='Quantity',title='Pie Chart')
         st.plotly_chart(fig)
 
-  
-  
-  
+
+
+
