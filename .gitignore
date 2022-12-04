@@ -1,4 +1,10 @@
+*/venv
 .idea/*
+.env
+venv/*
+**/__pycache__/*
 pyinsights/__pycache__/*
 pyinsights/temporal_profiling/__pycache__/*
 .gitignore
+pyinsights/log_skeleton/pm4py.py
+
