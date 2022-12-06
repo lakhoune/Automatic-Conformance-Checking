@@ -133,8 +133,8 @@ class LogSkeleton:
             # check if occurrence profile of act1 is subset of act2's
             if len(groups_expanded[pair[0]].merge(groups_expanded[pair[1]])) == len(groups_expanded[pair[0]]):
                 # only add tuple if same in reverse order is not already in set
-                if tuple((pair[1], pair[0])) not in equivalence:
-                    equivalence.add(pair)
+                #if tuple((pair[1], pair[0])) not in equivalence:
+                equivalence.add(pair)
 
         return equivalence
 
