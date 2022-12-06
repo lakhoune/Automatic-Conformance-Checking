@@ -218,8 +218,6 @@ class LogSkeleton:
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        directly_follows = None
-        # Get the directly follows relation
         query = PQL()
         query.add(
             PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
@@ -227,12 +225,17 @@ class LogSkeleton:
                   query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
         query.add(PQLColumn(name="TARGET",
                   query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
-        directly_follows = datamodel.get_data_frame(query)
-
+        
         if case_id_filter is not None:
             query.add(self._get_case_id_filter(case_id_filter))
+        
+        edge_table = datamodel.get_data_frame(query)
 
-        return directly_follows[["SOURCE", "TARGET"]]
+        directly_follows = set()
+        for _, row in edge_table.iterrows():
+            directly_follows.add((row["SOURCE"], row["TARGET"]))
+
+        return directly_follows
 
     def get_conformance(self):
         """
