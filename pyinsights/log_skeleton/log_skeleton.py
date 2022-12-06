@@ -113,10 +113,7 @@ class LogSkeleton:
             name="max nr", query=f"""
                 PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
                 ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
-        query += PQLFilter(f"""
-            PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
-                ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) >= 1
-            """)
+
         df = datamodel.get_data_frame(query)
 
         # group by activity

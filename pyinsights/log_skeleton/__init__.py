@@ -1,1 +1,1 @@
-from log_skeleton import LogSkeleton
+from pyinsights.log_skeleton.log_skeleton import LogSkeleton
