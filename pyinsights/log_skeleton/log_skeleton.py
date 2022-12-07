@@ -225,11 +225,22 @@ class LogSkeleton:
                   query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
         query.add(PQLColumn(name="TARGET",
                   query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
-        
+
         if case_id_filter is not None:
             query.add(self._get_case_id_filter(case_id_filter))
-        
+
         edge_table = datamodel.get_data_frame(query)
+
+        case_count = len(edge_table["ID"].unique())
+        print(edge_table)
+        # group by source and target and count the number of edges
+        edge_table = edge_table.groupby(
+            ["ID","SOURCE", "TARGET"]).size().reset_index(name="count")
+        print(edge_table)
+        # filter out the edges that are below the noise threshold
+        edge_table = edge_table[edge_table["count"]
+                                >= noise_threshold*case_count]
+        print(edge_table)
 
         directly_follows = set()
         for _, row in edge_table.iterrows():
