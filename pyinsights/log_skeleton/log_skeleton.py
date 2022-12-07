@@ -208,8 +208,6 @@ class LogSkeleton:
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        directly_follows = None
-        # Get the directly follows relation
         query = PQL()
         query.add(
             PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
@@ -217,12 +215,33 @@ class LogSkeleton:
                   query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
         query.add(PQLColumn(name="TARGET",
                   query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
-        directly_follows = datamodel.get_data_frame(query)
 
         if case_id_filter is not None:
             query.add(self._get_case_id_filter(case_id_filter))
 
-        return directly_follows[["SOURCE", "TARGET"]]
+        edge_table = datamodel.get_data_frame(query)
+
+        case_count = edge_table['ID'].nunique()  # number of cases in the log
+        # threshold above which we consider the relation as a direct follow
+        threshold = (1-noise_threshold) * case_count
+
+        edge_table = edge_table.groupby(
+            ['ID', 'SOURCE', 'TARGET']).size().reset_index(name='count')
+
+        # set all counts to 1 since we only consider whether the relation exists or not (not how often) (also need this for the filter below)
+        edge_table['count'] = 1
+        # now group by source and target and sum up the count
+        edge_table = edge_table.groupby(
+            ['SOURCE', 'TARGET']).sum().reset_index()
+
+        # now filter out the ones that are below the noise threshold
+        edge_table = edge_table[edge_table['count'] >= threshold]
+
+        directly_follows = set()
+        for _, row in edge_table.iterrows():
+            directly_follows.add((row["SOURCE"], row["TARGET"]))
+
+        return directly_follows
 
     def get_conformance(self):
         """
