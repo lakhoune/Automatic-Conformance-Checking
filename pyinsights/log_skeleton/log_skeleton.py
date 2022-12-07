@@ -231,16 +231,21 @@ class LogSkeleton:
 
         edge_table = datamodel.get_data_frame(query)
 
-        case_count = len(edge_table["ID"].unique())
-        print(edge_table)
-        # group by source and target and count the number of edges
+        case_count = edge_table['ID'].nunique()  # number of cases in the log
+        # threshold above which we consider the relation as a direct follow
+        threshold = (1-noise_threshold) * case_count
+
         edge_table = edge_table.groupby(
-            ["ID","SOURCE", "TARGET"]).size().reset_index(name="count")
-        print(edge_table)
-        # filter out the edges that are below the noise threshold
-        edge_table = edge_table[edge_table["count"]
-                                >= noise_threshold*case_count]
-        print(edge_table)
+            ['ID', 'SOURCE', 'TARGET']).size().reset_index(name='count')
+
+        # set all counts to 1 since we only consider whether the relation exists or not (not how often) (also need this for the filter below)
+        edge_table['count'] = 1
+        # now group by source and target and sum up the count
+        edge_table = edge_table.groupby(
+            ['SOURCE', 'TARGET']).sum().reset_index()
+
+        # now filter out the ones that are below the noise threshold
+        edge_table = edge_table[edge_table['count'] >= threshold]
 
         directly_follows = set()
         for _, row in edge_table.iterrows():
