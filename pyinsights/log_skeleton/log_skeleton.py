@@ -146,20 +146,52 @@ class LogSkeleton:
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        always_after = None
+        always_after = set()
         # Get the always after relation
+        # get for every activity its position in the trace
         query = PQL()
-        query.add(
-            PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
-        query.add(PQLColumn(name="SOURCE",
-                  query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
-        query.add(PQLColumn(name="TARGET",
-                  query=f"""  TARGET ( "{activity_table}"."{act_col}", ANY_OCCURRENCE[] TO LAST_OCCURRENCE[]) """))
+        query.add(PQLColumn(name=case_col,
+                            query=f""" "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
+                         """))
+        df = datamodel.get_data_frame(query)
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "order"]] for k, v in groups.items()}
 
-        always_after = datamodel.get_data_frame(query)
-        # could be that for two different cases in one a always after b and in the other b always after a so we need. Not sure on that might need to look into that
+        # get cartesian product of activities (because relation is not symmetrical)
+        combs = itertools.product(groups_expanded.keys(), repeat=2)
+        # iterate over pairs
+        for pair in combs:
 
-        return always_after[["SOURCE", "TARGET"]]
+            # get positions of both acts in one df
+            merged = groups_expanded[pair[0]].merge(groups_expanded[pair[1]], on=case_col, how='left')
+            # replace nas so they don't mess up the maximum
+            merged.fillna(0, inplace=True)
+            # get the result per column and get compute for every case
+            # the greatest position for both activities
+            grouped = merged.groupby(case_col)
+            test = grouped.agg({'order_x': 'max',
+                                'order_y': 'max'})
+
+            # handling if both activities are the same
+            if pair[0] == pair[1]:
+                # if they actually occur more than 1 time in every case --> they are in the relation
+                if all(merged[case_col].value_counts() > 1):
+                    always_after.add(pair)
+
+            # else test if the last occurrence of act2 is after the last occurrence of act1
+            # and add to relation
+            elif all(test["order_x"] < test["order_y"]):
+                always_after.add(pair)
+
+        return always_after
 
     def _get_always_before(self, extended_log, noise_threshold):
         """
@@ -168,21 +200,53 @@ class LogSkeleton:
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        always_before = None
-        # Get the always before relation
+        always_before = set()
+        # Get the always after relation
+        # get for every activity its position in the trace
         query = PQL()
-        query.add(
-            PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
-        query.add(PQLColumn(name="SOURCE",
-                  query=f""" SOURCE ( "{activity_table}"."{act_col}" , FIRST_OCCURRENCE[] TO ANY_OCCURRENCE[]) """))
-        query.add(PQLColumn(name="TARGET",
-                  query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
+        query.add(PQLColumn(name=case_col,
+                            query=f""" "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
+                                 """))
+        df = datamodel.get_data_frame(query)
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "order"]] for k, v in groups.items()}
 
-        always_before = datamodel.get_data_frame(query)
+        # get cartesian product of activities (because relation is not symmetrical)
+        combs = itertools.product(groups_expanded.keys(), repeat=2)
+        # iterate over pairs
+        for pair in combs:
 
-        # could be that for two different cases in one a always after b and in the other b always after a so we need. Not sure on that might need to look into that
+            # get positions of both acts in one df
+            merged = groups_expanded[pair[0]].merge(groups_expanded[pair[1]], on=case_col, how='left')
+            # replace nas so they don't mess up the minimum
+            merged.fillna(1000000000, inplace=True)
+            # get the result per column and compute for every case
+            # the lowest position for both activities
+            grouped = merged.groupby(case_col)
+            test = grouped.agg({'order_x': 'min',
+                                'order_y': 'min'})
 
-        return always_before[["SOURCE", "TARGET"]]
+            # handling if both activities are the same
+            if pair[0] == pair[1]:
+                # if they actually occur more than 1 time in every case --> they are in the relation
+                if all(merged[case_col].value_counts() > 1):
+                    always_before.add(pair)
+
+            # else test if the first occurrence of act1 is after the first occurrence of act2
+            # and add to relation
+            elif all(test["order_x"] > test["order_y"]):
+                always_before.add(pair)
+
+        return always_before
+
 
     def _get_never_together(self, extended_log, noise_threshold):
         """
