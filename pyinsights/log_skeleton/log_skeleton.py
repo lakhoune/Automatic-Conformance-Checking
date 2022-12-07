@@ -1,5 +1,6 @@
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 import numpy as np
+import itertools
 
 
 class LogSkeleton:
@@ -100,49 +101,38 @@ class LogSkeleton:
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        equivalence = None
-        # Get the equivalence relation
-        query = PQL()
+        equivalence = set()
+        # Get the number of occurrences of each activity per case
 
+        query = PQL()
         query.add(PQLColumn(name=case_col,
-                  query=f""" "{activity_table}"."{case_col}"  """))
+                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
         query.add(PQLColumn(name=act_col,
-                  query=f""" "{activity_table}"."{act_col}"  """))
+                            query=f""" "{activity_table}"."{act_col}"  """))
         query.add(PQLColumn(
-            name="nr", query=f""" ACTIVATION_COUNT ( "{activity_table}"."{act_col}" )  """))
+            name="max nr", query=f"""
+                PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
+                ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
         df = datamodel.get_data_frame(query)
 
-        # reverse the order of the rows
-        df = df.iloc[::-1]
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]] for k, v in groups.items()}
 
-        # dictionary to store the case id and the activity name with the highest activation count
-        max_act = {}
+        # get all pairs of activities
+        combs = itertools.permutations(groups_expanded.keys(), 2)
 
-        # loop over the rows
-        for index, row in df.iterrows():
-            # check if the case id is already in the dictionary
-            if row[case_col] in max_act:
-                # check if the activation column is already in the dictionary
-                # if row[act_col] in max_act[row[case_col]]:
-                if any(row[act_col] in act for act in max_act[row[case_col]]):
-                    # do nothing
-                    pass
-                else:
-                    # append the activation count to the dictionary
-                    max_act[row[case_col]].append({row[act_col]: row["nr"]})
-            else:
-                # add the case id and the activity name with the highest activation count to the dictionary
-                max_act[row[case_col]] = [{row[act_col]: row["nr"]}]
-
-        activities_of_cases_with_same_max_act = {}
-        for activities in max_act.values():
-            activities_of_cases_with_same_max_act = get_candidate_pairs(
-                activities=activities, activities_of_cases_with_same_max_act=activities_of_cases_with_same_max_act)
-
-        equivalence = [pair for pair, count in activities_of_cases_with_same_max_act.items(
-        ) if count is not None]  # remove pairs with None values
-        equivalence.sort()
-        # expected = [('examine casually', 'pay compensation'), ('examine thoroughly', 'register request'), ('pay compensation', 'register request'),('register request', 'reject request')]
+        # iterate over pairs
+        for pair in combs:
+            # check if occurrence profile of act1 is subset of act2's
+            if len(groups_expanded[pair[0]].merge(groups_expanded[pair[1]])) == len(groups_expanded[pair[0]]):
+                # only add tuple if same in reverse order is not already in set
+                # if tuple((pair[1], pair[0])) not in equivalence:
+                equivalence.add(pair)
 
         return equivalence
 
@@ -206,9 +196,38 @@ class LogSkeleton:
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        never_together = None
-        # Get the never together relation
+        never_together = set()
 
+        # Get the never together relation
+        query = PQL()
+        query.add(PQLColumn(name=case_col,
+                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="max nr", query=f"""
+                        PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
+                        ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
+        df = datamodel.get_data_frame(query)
+
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]] for k, v in groups.items()}
+
+        # get all pairs of activities
+        combs = itertools.permutations(groups_expanded.keys(), 2)
+
+        # iterate over pairs
+        for pair in combs:
+            # check if act1 and act2 do not occur in same case
+            if not any(groups_expanded[pair[0]][case_col].isin(groups_expanded[pair[1]][case_col])):
+                # only add tuple if same in reverse order is not already in set
+                # if tuple((pair[1], pair[0])) not in equivalence:
+                never_together.add(pair)
         return never_together
 
     def _get_directly_follows(self, extended_log, noise_threshold, case_id_filter=None):
