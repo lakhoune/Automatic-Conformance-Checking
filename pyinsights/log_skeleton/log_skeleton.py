@@ -218,8 +218,10 @@ class LogSkeleton:
         query.add(PQLColumn(
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                                  """))
+
         if case_id is not None:
             query.add(self._get_case_id_filter(case_id))
+
 
         df = datamodel.get_data_frame(query)
         # group by activity
@@ -332,7 +334,7 @@ class LogSkeleton:
         edge_table['count'] = 1
         # now group by source and target and sum up the count
         edge_table = edge_table.groupby(
-            ['SOURCE', 'TARGET']).sum().reset_index()
+            ['SOURCE', 'TARGET']).sum(numeric_only=True).reset_index()
 
         # now filter out the ones that are below the noise threshold
         edge_table = edge_table[edge_table['count'] >= threshold]
