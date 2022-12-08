@@ -94,7 +94,7 @@ class LogSkeleton:
 
         return equivalence, always_after, always_before, never_together, directly_follows
 
-    def _get_equivalence(self, extended_log, noise_threshold):
+    def _get_equivalence(self, extended_log, noise_threshold, case_id=None):
         """
         Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
         :param extended_log: pandas.DataFrame
@@ -113,6 +113,9 @@ class LogSkeleton:
             name="max nr", query=f"""
                 PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
                 ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         df = datamodel.get_data_frame(query)
 
@@ -136,13 +139,13 @@ class LogSkeleton:
 
         return equivalence
 
-    def _get_always_after(self, extended_log, noise_threshold, case_id_filter=None):
+    def _get_always_after(self, extended_log, noise_threshold, case_id=None):
         """
         Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs.
         If the case ID filter is set, the always after relation is only computed for the trace with the given case ID.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
-        :param case_id_filter: str
+        :param case_id: str
         :return: pandas.DataFrame
         """
         always_after = set()
@@ -157,8 +160,8 @@ class LogSkeleton:
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                          """))
 
-        if case_id_filter is not None:
-            query.add(self._get_case_id_filter(case_id_filter))
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         df = datamodel.get_data_frame(query)
         # group by activity
@@ -196,7 +199,7 @@ class LogSkeleton:
 
         return always_after
 
-    def _get_always_before(self, extended_log, noise_threshold, case_id_filter=None):
+    def _get_always_before(self, extended_log, noise_threshold, case_id=None):
         """
         Returns the always before relation of the log skeleton.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
         :param extended_log: pandas.DataFrame
@@ -214,8 +217,8 @@ class LogSkeleton:
         query.add(PQLColumn(
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                                  """))
-        if case_id_filter is not None:
-            query.add(self._get_case_id_filter(case_id_filter))
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
             
         df = datamodel.get_data_frame(query)
         # group by activity
@@ -253,8 +256,7 @@ class LogSkeleton:
 
         return always_before
 
-
-    def _get_never_together(self, extended_log, noise_threshold):
+    def _get_never_together(self, extended_log, noise_threshold, case_id):
         """
         Returns the never together relation of the log skeleton. two activities are related if and only if they do not occur together in any trace.
         :param extended_log: pandas.DataFrame
@@ -273,6 +275,8 @@ class LogSkeleton:
             name="max nr", query=f"""
                         PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
                         ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         df = datamodel.get_data_frame(query)
 
@@ -295,7 +299,7 @@ class LogSkeleton:
                 never_together.add(pair)
         return never_together
 
-    def _get_directly_follows(self, extended_log, noise_threshold, case_id_filter=None):
+    def _get_directly_follows(self, extended_log, noise_threshold, case_id=None):
         """
         Returns the directly follows relation of the log skeleton. two activities are related if and only if an occurrence the first activity can directly be followed by an occurrence of the second.
         :param extended_log: pandas.DataFrame
@@ -310,8 +314,8 @@ class LogSkeleton:
         query.add(PQLColumn(name="TARGET",
                   query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
 
-        if case_id_filter is not None:
-            query.add(self._get_case_id_filter(case_id_filter))
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         edge_table = datamodel.get_data_frame(query)
 
