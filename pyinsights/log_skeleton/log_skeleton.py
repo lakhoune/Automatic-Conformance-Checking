@@ -136,11 +136,13 @@ class LogSkeleton:
 
         return equivalence
 
-    def _get_always_after(self, extended_log, noise_threshold):
+    def _get_always_after(self, extended_log, noise_threshold, case_id_filter=None):
         """
-        Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs
+        Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs.
+        If the case ID filter is set, the always after relation is only computed for the trace with the given case ID.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
+        :param case_id_filter: str
         :return: pandas.DataFrame
         """
         always_after = set()
@@ -154,6 +156,10 @@ class LogSkeleton:
         query.add(PQLColumn(
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                          """))
+
+        if case_id_filter is not None:
+            query.add(self._get_case_id_filter(case_id_filter))
+
         df = datamodel.get_data_frame(query)
         # group by activity
         grouped = df.groupby(by=[act_col], axis=0)
@@ -190,7 +196,7 @@ class LogSkeleton:
 
         return always_after
 
-    def _get_always_before(self, extended_log, noise_threshold):
+    def _get_always_before(self, extended_log, noise_threshold, case_id_filter=None):
         """
         Returns the always before relation of the log skeleton.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
         :param extended_log: pandas.DataFrame
@@ -208,6 +214,9 @@ class LogSkeleton:
         query.add(PQLColumn(
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                                  """))
+        if case_id_filter is not None:
+            query.add(self._get_case_id_filter(case_id_filter))
+            
         df = datamodel.get_data_frame(query)
         # group by activity
         grouped = df.groupby(by=[act_col], axis=0)
@@ -286,15 +295,13 @@ class LogSkeleton:
                 never_together.add(pair)
         return never_together
 
-    def _get_directly_follows(self, extended_log, noise_threshold):
+    def _get_directly_follows(self, extended_log, noise_threshold, case_id_filter=None):
         """
         Returns the directly follows relation of the log skeleton. two activities are related if and only if an occurrence the first activity can directly be followed by an occurrence of the second.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
         :return: pandas.DataFrame
         """
-        directly_follows = None
-        # Get the directly follows relation
         query = PQL()
         query.add(
             PQLColumn(name="ID", query=f""" SOURCE("{activity_table}"."{case_col}") """))
@@ -302,24 +309,107 @@ class LogSkeleton:
                   query=f""" SOURCE ( "{activity_table}"."{act_col}" ) """))
         query.add(PQLColumn(name="TARGET",
                   query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
-        directly_follows = datamodel.get_data_frame(query)
 
-        return directly_follows[["SOURCE", "TARGET"]]
+        if case_id_filter is not None:
+            query.add(self._get_case_id_filter(case_id_filter))
+
+        edge_table = datamodel.get_data_frame(query)
+
+        case_count = edge_table['ID'].nunique()  # number of cases in the log
+        # threshold above which we consider the relation as a direct follow
+        threshold = (1-noise_threshold) * case_count
+
+        edge_table = edge_table.groupby(
+            ['ID', 'SOURCE', 'TARGET']).size().reset_index(name='count')
+
+        # set all counts to 1 since we only consider whether the relation exists or not (not how often) (also need this for the filter below)
+        edge_table['count'] = 1
+        # now group by source and target and sum up the count
+        edge_table = edge_table.groupby(
+            ['SOURCE', 'TARGET']).sum().reset_index()
+
+        # now filter out the ones that are below the noise threshold
+        edge_table = edge_table[edge_table['count'] >= threshold]
+
+        directly_follows = set()
+        for _, row in edge_table.iterrows():
+            directly_follows.add((row["SOURCE"], row["TARGET"]))
+
+        return directly_follows
+
+    def get_conformance(self):
+        """
+        Checks for each trace in the log, whether it is fitting or not.
+        :return: pandas.DataFrame with the conformance of each trace ( columns: [caseID, conformance])
+        """
+        # get the case ids of the log
+        query = PQL()
+        query.add(
+            PQLColumn(name="ID", query=f""" "{activity_table}"."{case_col}" """))
+        case_ids = datamodel.get_data_frame(query).drop_duplicates()
+        for index, row in case_ids.iterrows():
+            case_ids.at[index, "conformance"] = self._get_conformance_for_case(
+                row["ID"])
+        return case_ids
+
+    def _get_conformance_for_case(self, case_id):
+        """
+        Checks whether the given trace is fitting or not.
+        :param case_id: str
+        :return: bool
+        """
+        # get the equivalence relation for the given case
+        equivalence_for_case = self._get_equivalence_relation(case_id)
+        # get the always after relation for the given case
+        always_after_for_case = self._get_always_after(
+            None, None, case_id=case_id)
+        # get the always before relation for the given case
+        always_before_for_case = self._get_always_before(
+            None, None, case_id=case_id)
+        # get the directly follows relation for the given case
+        directly_follows_for_case = self._get_directly_follows(
+            None, None, case_id=case_id)
+
+        if (self._get_equivalence().issubset(equivalence_for_case)) is False:
+            return False
+        if (self._get_always_after().issubset(always_after_for_case)) is False:
+            return False
+        if (self._get_always_before().issubset(always_before_for_case)) is False:
+            return False
+
+        # Note that the directly follows relation subset relation is inverted (see paper)
+        if (directly_follows_for_case.issubset(self._get_directly_follows())) is False:
+            return False
+        return True
+
+    def _get_case_id_filter(self, case_id):
+        """
+        Returns a filter for the given case ID.
+        :param case_id: str
+        :return: str
+        """
+        return PQLFilter(query=f""" "{activity_table}"."{case_col}" = '{case_id}' """)
 
 
-def log_subsumes_log(log1, log2):
-    """
-    Checks if log1 subsumes log2.
-    :return: bool
-    """
-    # Check if log1 subsumes log2
-    return False
-
-
-def log_subsumes_trace(log, trace):
-    """
-    Checks if log subsumes trace.
-    :return: bool
-    """
-    # Check if log subsumes trace
-    return False
+def get_candidate_pairs(activities, activities_of_cases_with_same_max_act):
+    for act1 in activities:
+        activity_name_1 = list(act1.keys())[0]  # name of activity
+        # how often it occurs in the trace
+        activity_count_1 = list(act1.values())[0]
+        for act2 in activities:
+            activity_name_2 = list(act2.keys())[0]  # name of activity
+            # how often it occurs in the trace
+            activity_count_2 = list(act2.values())[0]
+            if activity_name_1 < activity_name_2:  # relation is symmetrical. This ensures that we dont recheck existing pairs. Furthermore it ensures that the keys will be sorted
+                if activity_count_1 == activity_count_2:
+                    # as they both occur equally often in the current trace they are potential candidates
+                    candidate_pair = (activity_name_1, activity_name_2)
+                    if candidate_pair in activities_of_cases_with_same_max_act:
+                        existing_pair_count = activities_of_cases_with_same_max_act[
+                            candidate_pair]  # how often it has occured before.
+                        if existing_pair_count is not None and existing_pair_count != activity_count_1:
+                            # setting to None means we are not reconsidering it in the future
+                            activities_of_cases_with_same_max_act[candidate_pair] = None
+                    else:
+                        activities_of_cases_with_same_max_act[candidate_pair] = activity_count_1
+    return activities_of_cases_with_same_max_act
