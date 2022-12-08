@@ -216,7 +216,7 @@ class LogSkeleton:
                                  """))
         if case_id_filter is not None:
             query.add(self._get_case_id_filter(case_id_filter))
-            
+
         df = datamodel.get_data_frame(query)
         # group by activity
         grouped = df.groupby(by=[act_col], axis=0)
@@ -326,7 +326,7 @@ class LogSkeleton:
         edge_table['count'] = 1
         # now group by source and target and sum up the count
         edge_table = edge_table.groupby(
-            ['SOURCE', 'TARGET']).sum().reset_index()
+            ['SOURCE', 'TARGET']).sum(numeric_only=True).reset_index()
 
         # now filter out the ones that are below the noise threshold
         edge_table = edge_table[edge_table['count'] >= threshold]
