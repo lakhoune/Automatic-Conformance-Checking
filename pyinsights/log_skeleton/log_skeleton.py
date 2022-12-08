@@ -81,7 +81,7 @@ class LogSkeleton:
         Returns the relations of the log skeleton.
         :param extended_log: pandas.DataFrame
         :param noise_threshold: int
-        :return: pandas.DataFrame
+        :return: (equivalence, always_after, always_before, never_together, directly_follows)
         """
         equivalence = self._get_equivalence(noise_threshold)
         always_after = self._get_always_after(noise_threshold)
@@ -259,7 +259,7 @@ class LogSkeleton:
 
         return always_before
 
-    def _get_never_together(self, noise_threshold, case_id):
+    def _get_never_together(self, noise_threshold, case_id=None):
         """
         Returns the never together relation of the log skeleton. two activities are related if and only if they do not occur together in any trace.
         :param extended_log: pandas.DataFrame
@@ -353,39 +353,45 @@ class LogSkeleton:
         query.add(
             PQLColumn(name="ID", query=f""" "{activity_table}"."{case_col}" """))
         case_ids = datamodel.get_data_frame(query).drop_duplicates()
+
+        relations = self._get_relations(noise_threshold)
+
         for index, row in case_ids.iterrows():
             case_ids.at[index, "conformance"] = self._get_conformance_for_case(
-                row["ID"], noise_threshold)
+                row["ID"], relations, noise_threshold)
         return case_ids
 
-    def _get_conformance_for_case(self, case_id, noise_threshold):
+    def _get_conformance_for_case(self, case_id, relations, noise_threshold):
         """
         Checks whether the given trace is fitting or not.
         :param case_id: str
         :return: bool
         """
+
+        equivalence, always_after, always_before, never_together, directly_follows = relations
+
         # get the equivalence relation for the given case
         equivalence_for_case = self._get_equivalence(case_id, noise_threshold)
         # get the always after relation for the given case
         always_after_for_case = self._get_always_after(
-            None, None, case_id=case_id)
+            noise_threshold, case_id=case_id)
         # get the always before relation for the given case
         always_before_for_case = self._get_always_before(
-            None, None, case_id=case_id)
+            noise_threshold, case_id=case_id)
         # get the directly follows relation for the given case
         directly_follows_for_case = self._get_directly_follows(
-            None, None, case_id=case_id)
-
-        if (self._get_equivalence().issubset(equivalence_for_case)) is False:
-            return False
-        if (self._get_always_after().issubset(always_after_for_case)) is False:
-            return False
-        if (self._get_always_before().issubset(always_before_for_case)) is False:
-            return False
+            noise_threshold, case_id=case_id)
 
         # Note that the directly follows relation subset relation is inverted (see paper)
-        if (directly_follows_for_case.issubset(self._get_directly_follows())) is False:
+        if directly_follows_for_case.issubset(directly_follows) is False:
             return False
+        if equivalence.issubset(equivalence_for_case) is False:
+            return False
+        if always_after(noise_threshold).issubset(always_after_for_case) is False:
+            return False
+        if always_before(noise_threshold).issubset(always_before_for_case) is False:
+            return False
+
         return True
 
     def _get_case_id_filter(self, case_id):
