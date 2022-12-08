@@ -382,14 +382,15 @@ class LogSkeleton:
         directly_follows_for_case = self._get_directly_follows(
             noise_threshold, case_id=case_id)
 
-        # Note that the directly follows relation subset relation is inverted (see paper)
-        if directly_follows_for_case.issubset(directly_follows) is False:
+        if always_after.issubset(always_after_for_case) is False:
+            return False
+        if always_before.issubset(always_before_for_case) is False:
             return False
         if equivalence.issubset(equivalence_for_case) is False:
             return False
-        if always_after(noise_threshold).issubset(always_after_for_case) is False:
-            return False
-        if always_before(noise_threshold).issubset(always_before_for_case) is False:
+
+        # Note that the directly follows relation subset relation is inverted (see paper)
+        if directly_follows_for_case.issubset(directly_follows) is False:
             return False
 
         return True
