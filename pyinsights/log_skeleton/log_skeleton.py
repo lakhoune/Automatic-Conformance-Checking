@@ -75,11 +75,12 @@ class LogSkeleton:
             by=case_col).agg({act_col: lambda x: ["START"] + list(x) + ["END"]})  # construct the bag of traces while adding an artificial start and end
         return bag_of_traces.values
 
+
     def _get_relations(self, noise_threshold=0):
         """
         Returns the relations of the log skeleton.
         :param noise_threshold: int
-        :return: relations as set
+        :return: (equivalence, always_after, always_before, never_together, directly_follows)
         """
         equivalence = self._get_equivalence(noise_threshold)
         always_after = self._get_always_after(noise_threshold)
@@ -90,7 +91,8 @@ class LogSkeleton:
 
         return equivalence, always_after, always_before, never_together, directly_follows
 
-    def _get_equivalence(self, noise_threshold=0):
+
+    def _get_equivalence(self, noise_threshold, case_id=None):
         """
         Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
         :param noise_threshold: int
@@ -109,6 +111,9 @@ class LogSkeleton:
                 PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
                 ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
 
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
+
         df = datamodel.get_data_frame(query)
 
         # group by activity
@@ -116,7 +121,8 @@ class LogSkeleton:
         # get groups as dict
         groups = grouped.groups
         # currently groups contain only row index, expand with case id and count
-        groups_expanded = {k: df.loc[v, [case_col, "max nr"]] for k, v in groups.items()}
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
+                           for k, v in groups.items()}
 
         # get all pairs of activities
         combs = itertools.permutations(groups_expanded.keys(), 2)
@@ -133,12 +139,13 @@ class LogSkeleton:
 
         return equivalence
 
-    def _get_always_after(self, noise_threshold=0, case_id_filter=None):
+
+    def _get_always_after(self, noise_threshold, case_id=None):
         """
         Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs.
         If the case ID filter is set, the always after relation is only computed for the trace with the given case ID.
         :param noise_threshold: int
-        :param case_id_filter: str
+        :param case_id: str
         :return: set
         """
         always_after = set()
@@ -153,8 +160,8 @@ class LogSkeleton:
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                          """))
 
-        if case_id_filter is not None:
-            query.add(self._get_case_id_filter(case_id_filter))
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         df = datamodel.get_data_frame(query)
         # group by activity
@@ -162,7 +169,8 @@ class LogSkeleton:
         # get groups as dict
         groups = grouped.groups
         # currently groups contain only row index, expand with case id and count
-        groups_expanded = {k: df.loc[v, [case_col, "order"]] for k, v in groups.items()}
+        groups_expanded = {k: df.loc[v, [case_col, "order"]]
+                           for k, v in groups.items()}
 
         # get cartesian product of activities (because relation is not symmetrical)
         combs = itertools.product(groups_expanded.keys(), repeat=2)
@@ -173,7 +181,8 @@ class LogSkeleton:
         for pair in bar:
 
             # get positions of both acts in one df
-            merged = groups_expanded[pair[0]].merge(groups_expanded[pair[1]], on=case_col, how='left')
+            merged = groups_expanded[pair[0]].merge(
+                groups_expanded[pair[1]], on=case_col, how='left')
             # replace nas so they don't mess up the maximum
             merged.fillna(0, inplace=True)
             # get the result per column and get compute for every case
@@ -196,7 +205,8 @@ class LogSkeleton:
 
         return always_after
 
-    def _get_always_before(self, noise_threshold=0, case_id_filter=None):
+
+    def _get_always_before(self, noise_threshold, case_id=None):
         """
         Returns the always before relation of the log skeleton.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
         :param noise_threshold: int
@@ -213,8 +223,9 @@ class LogSkeleton:
         query.add(PQLColumn(
             name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
                                  """))
-        if case_id_filter is not None:
-            query.add(self._get_case_id_filter(case_id_filter))
+
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         df = datamodel.get_data_frame(query)
         # group by activity
@@ -222,7 +233,8 @@ class LogSkeleton:
         # get groups as dict
         groups = grouped.groups
         # currently groups contain only row index, expand with case id and count
-        groups_expanded = {k: df.loc[v, [case_col, "order"]] for k, v in groups.items()}
+        groups_expanded = {k: df.loc[v, [case_col, "order"]]
+                           for k, v in groups.items()}
 
         # get cartesian product of activities (because relation is not symmetrical)
         combs = itertools.product(groups_expanded.keys(), repeat=2)
@@ -233,7 +245,8 @@ class LogSkeleton:
         for pair in bar:
 
             # get positions of both acts in one df
-            merged = groups_expanded[pair[0]].merge(groups_expanded[pair[1]], on=case_col, how='left')
+            merged = groups_expanded[pair[0]].merge(
+                groups_expanded[pair[1]], on=case_col, how='left')
             # replace nas so they don't mess up the minimum
             merged.fillna(1000000000, inplace=True)
             # get the result per column and compute for every case
@@ -256,7 +269,8 @@ class LogSkeleton:
 
         return always_before
 
-    def _get_never_together(self, noise_threshold):
+
+    def _get_never_together(self, noise_threshold, case_id=None):
         """
         Returns the never together relation of the log skeleton. two activities are related if and only if they do not occur together in any trace.
         :return: set
@@ -273,15 +287,16 @@ class LogSkeleton:
             name="max nr", query=f"""
                         PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
                         ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
-
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
         df = datamodel.get_data_frame(query)
-
         # group by activity
         grouped = df.groupby(by=[act_col], axis=0)
         # get groups as dict
         groups = grouped.groups
         # currently groups contain only row index, expand with case id and count
-        groups_expanded = {k: df.loc[v, [case_col, "max nr"]] for k, v in groups.items()}
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
+                           for k, v in groups.items()}
 
         # get all pairs of activities
         combs = itertools.permutations(groups_expanded.keys(), 2)
@@ -298,7 +313,8 @@ class LogSkeleton:
                 never_together.add(pair)
         return never_together
 
-    def _get_directly_follows(self, noise_threshold, case_id_filter=None):
+
+    def _get_directly_follows(self, noise_threshold, case_id=None):
         """
         Returns the directly follows relation of the log skeleton. two activities are related if and only if an occurrence the first activity can directly be followed by an occurrence of the second.
         :param noise_threshold: int
@@ -312,8 +328,8 @@ class LogSkeleton:
         query.add(PQLColumn(name="TARGET",
                   query=f"""  TARGET ( "{activity_table}"."{act_col}") """))
 
-        if case_id_filter is not None:
-            query.add(self._get_case_id_filter(case_id_filter))
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
 
         edge_table = datamodel.get_data_frame(query)
 
@@ -328,7 +344,7 @@ class LogSkeleton:
         edge_table['count'] = 1
         # now group by source and target and sum up the count
         edge_table = edge_table.groupby(
-            ['SOURCE', 'TARGET']).sum().reset_index()
+            ['SOURCE', 'TARGET']).sum(numeric_only=True).reset_index()
 
         # now filter out the ones that are below the noise threshold
         edge_table = edge_table[edge_table['count'] >= threshold]
@@ -347,7 +363,7 @@ class LogSkeleton:
 
         return directly_follows
 
-    def get_conformance(self):
+    def get_conformance(self, noise_threshold=0):
         """
         Checks for each trace in the log, whether it is fitting or not.
         :return: pandas.DataFrame with the conformance of each trace ( columns: [caseID, conformance])
@@ -357,39 +373,46 @@ class LogSkeleton:
         query.add(
             PQLColumn(name="ID", query=f""" "{activity_table}"."{case_col}" """))
         case_ids = datamodel.get_data_frame(query).drop_duplicates()
+
+        relations = self._get_relations(noise_threshold)
+
         for index, row in case_ids.iterrows():
             case_ids.at[index, "conformance"] = self._get_conformance_for_case(
-                row["ID"])
+                row["ID"], relations, noise_threshold)
         return case_ids
 
-    def _get_conformance_for_case(self, case_id):
+    def _get_conformance_for_case(self, case_id, relations, noise_threshold):
         """
         Checks whether the given trace is fitting or not.
         :param case_id: str
         :return: bool
         """
+
+        equivalence, always_after, always_before, never_together, directly_follows = relations
+
         # get the equivalence relation for the given case
-        equivalence_for_case = self._get_equivalence_relation(case_id)
+        equivalence_for_case = self._get_equivalence(case_id, noise_threshold)
         # get the always after relation for the given case
         always_after_for_case = self._get_always_after(
-            None, None, case_id=case_id)
+            noise_threshold, case_id=case_id)
         # get the always before relation for the given case
         always_before_for_case = self._get_always_before(
-            None, None, case_id=case_id)
+            noise_threshold, case_id=case_id)
         # get the directly follows relation for the given case
         directly_follows_for_case = self._get_directly_follows(
-            None, None, case_id=case_id)
+            noise_threshold, case_id=case_id)
 
-        if (self._get_equivalence().issubset(equivalence_for_case)) is False:
+        if always_after.issubset(always_after_for_case) is False:
             return False
-        if (self._get_always_after().issubset(always_after_for_case)) is False:
+        if always_before.issubset(always_before_for_case) is False:
             return False
-        if (self._get_always_before().issubset(always_before_for_case)) is False:
+        if equivalence.issubset(equivalence_for_case) is False:
             return False
 
         # Note that the directly follows relation subset relation is inverted (see paper)
-        if (directly_follows_for_case.issubset(self._get_directly_follows())) is False:
+        if directly_follows_for_case.issubset(directly_follows) is False:
             return False
+
         return True
 
     def _get_case_id_filter(self, case_id):
@@ -400,26 +423,26 @@ class LogSkeleton:
         """
         return PQLFilter(query=f""" "{activity_table}"."{case_col}" = '{case_id}' """)
 
-
-def get_candidate_pairs(activities, activities_of_cases_with_same_max_act):
-    for act1 in activities:
-        activity_name_1 = list(act1.keys())[0]  # name of activity
-        # how often it occurs in the trace
-        activity_count_1 = list(act1.values())[0]
-        for act2 in activities:
-            activity_name_2 = list(act2.keys())[0]  # name of activity
-            # how often it occurs in the trace
-            activity_count_2 = list(act2.values())[0]
-            if activity_name_1 < activity_name_2:  # relation is symmetrical. This ensures that we dont recheck existing pairs. Furthermore it ensures that the keys will be sorted
-                if activity_count_1 == activity_count_2:
-                    # as they both occur equally often in the current trace they are potential candidates
-                    candidate_pair = (activity_name_1, activity_name_2)
-                    if candidate_pair in activities_of_cases_with_same_max_act:
-                        existing_pair_count = activities_of_cases_with_same_max_act[
-                            candidate_pair]  # how often it has occured before.
-                        if existing_pair_count is not None and existing_pair_count != activity_count_1:
-                            # setting to None means we are not reconsidering it in the future
-                            activities_of_cases_with_same_max_act[candidate_pair] = None
-                    else:
-                        activities_of_cases_with_same_max_act[candidate_pair] = activity_count_1
-    return activities_of_cases_with_same_max_act
+# # unused function
+# def get_candidate_pairs(activities, activities_of_cases_with_same_max_act):
+#     for act1 in activities:
+#         activity_name_1 = list(act1.keys())[0]  # name of activity
+#         # how often it occurs in the trace
+#         activity_count_1 = list(act1.values())[0]
+#         for act2 in activities:
+#             activity_name_2 = list(act2.keys())[0]  # name of activity
+#             # how often it occurs in the trace
+#             activity_count_2 = list(act2.values())[0]
+#             if activity_name_1 < activity_name_2:  # relation is symmetrical. This ensures that we dont recheck existing pairs. Furthermore it ensures that the keys will be sorted
+#                 if activity_count_1 == activity_count_2:
+#                     # as they both occur equally often in the current trace they are potential candidates
+#                     candidate_pair = (activity_name_1, activity_name_2)
+#                     if candidate_pair in activities_of_cases_with_same_max_act:
+#                         existing_pair_count = activities_of_cases_with_same_max_act[
+#                             candidate_pair]  # how often it has occured before.
+#                         if existing_pair_count is not None and existing_pair_count != activity_count_1:
+#                             # setting to None means we are not reconsidering it in the future
+#                             activities_of_cases_with_same_max_act[candidate_pair] = None
+#                     else:
+#                         activities_of_cases_with_same_max_act[candidate_pair] = activity_count_1
+#     return activities_of_cases_with_same_max_act
