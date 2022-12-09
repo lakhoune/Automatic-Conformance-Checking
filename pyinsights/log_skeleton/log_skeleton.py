@@ -1,7 +1,7 @@
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 import numpy as np
 import itertools
-
+from tqdm import tqdm
 
 class LogSkeleton:
     """
@@ -33,25 +33,22 @@ class LogSkeleton:
         timestamp = self.connector.timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
 
-    def get_log_skeleton(self, noise_threshold):
+    def get_log_skeleton(self, noise_threshold=0):
         """
         Returns the log skeleton of the data model.
-        :param noise_threshold: int
-        :return: pandas.DataFrame
+        :param noise_threshold: [0,1]
+        :return: relations and active frequencies as set
         """
         log_skeleton = None
         # Get the extended log
-        extended_log = self._extend_log()
 
-        equivalence, always_after, always_before, never_together, directly_follows = self._get_relations(
-            extended_log, noise_threshold)
+        equivalence, always_after, always_before, never_together, directly_follows \
+            = self._get_relations(noise_threshold)
 
-        directly_follows_counter = None
-        sum_counter = None
-        min_counter = None
-        max_counter = None
+        active_frequs = self._active_freq()
+
         log_skeleton = (equivalence, always_after, always_before, never_together,
-                        directly_follows, directly_follows_counter, sum_counter, min_counter, max_counter)
+                        directly_follows, active_frequs)
 
         return log_skeleton
 
@@ -76,11 +73,11 @@ class LogSkeleton:
             by=case_col).agg({act_col: lambda x: ["START"] + list(x) + ["END"]})  # construct the bag of traces while adding an artificial start and end
         return bag_of_traces.values
 
-    def _get_relations(self, noise_threshold):
+
+    def _get_relations(self, noise_threshold=0):
         """
         Returns the relations of the log skeleton.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :return: (equivalence, always_after, always_before, never_together, directly_follows)
         """
         equivalence = self._get_equivalence(noise_threshold)
@@ -92,12 +89,12 @@ class LogSkeleton:
 
         return equivalence, always_after, always_before, never_together, directly_follows
 
+
     def _get_equivalence(self, noise_threshold, case_id=None):
         """
         Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
-        :return: pandas.DataFrame
+        :param noise_threshold: [0,1]
+        :return: set
         """
         equivalence = set()
         # Get the number of occurrences of each activity per case
@@ -127,25 +124,27 @@ class LogSkeleton:
 
         # get all pairs of activities
         combs = itertools.permutations(groups_expanded.keys(), 2)
-
+        bar = tqdm(list(combs))
+        bar.set_description("Calculating equivalence")
         # iterate over pairs
-        for pair in combs:
+        for pair in bar:
+            num = len(groups_expanded[pair[0]].merge(groups_expanded[pair[1]]))
             # check if occurrence profile of act1 is subset of act2's
-            if len(groups_expanded[pair[0]].merge(groups_expanded[pair[1]])) == len(groups_expanded[pair[0]]):
+            if abs(num - len(groups_expanded[pair[0]])) <= num*noise_threshold:
                 # only add tuple if same in reverse order is not already in set
                 # if tuple((pair[1], pair[0])) not in equivalence:
                 equivalence.add(pair)
 
         return equivalence
 
+
     def _get_always_after(self, noise_threshold, case_id=None):
         """
         Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs.
         If the case ID filter is set, the always after relation is only computed for the trace with the given case ID.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :param case_id: str
-        :return: pandas.DataFrame
+        :return: set
         """
         always_after = set()
         # Get the always after relation
@@ -173,8 +172,11 @@ class LogSkeleton:
 
         # get cartesian product of activities (because relation is not symmetrical)
         combs = itertools.product(groups_expanded.keys(), repeat=2)
+
+        bar = tqdm(list(combs))
+        bar.set_description("Calculating always-after")
         # iterate over pairs
-        for pair in combs:
+        for pair in bar:
 
             # get positions of both acts in one df
             merged = groups_expanded[pair[0]].merge(
@@ -187,25 +189,26 @@ class LogSkeleton:
             test = grouped.agg({'order_x': 'max',
                                 'order_y': 'max'})
 
+            num = len(test)
+
             # handling if both activities are the same
             if pair[0] == pair[1]:
                 # if they actually occur more than 1 time in every case --> they are in the relation
-                if all(merged[case_col].value_counts() > 1):
+                if np.sum(merged[case_col].value_counts() > 1) >= num*(1-noise_threshold):
                     always_after.add(pair)
-
             # else test if the last occurrence of act2 is after the last occurrence of act1
             # and add to relation
-            elif all(test["order_x"] < test["order_y"]):
+            elif np.sum(test["order_x"] < test["order_y"]) >= num*(1-noise_threshold):
                 always_after.add(pair)
 
         return always_after
 
+
     def _get_always_before(self, noise_threshold, case_id=None):
         """
         Returns the always before relation of the log skeleton.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
-        :return: pandas.DataFrame
+        :param noise_threshold: [0,1]
+        :return: set
         """
         always_before = set()
         # Get the always after relation
@@ -222,7 +225,6 @@ class LogSkeleton:
         if case_id is not None:
             query.add(self._get_case_id_filter(case_id))
 
-
         df = datamodel.get_data_frame(query)
         # group by activity
         grouped = df.groupby(by=[act_col], axis=0)
@@ -235,7 +237,10 @@ class LogSkeleton:
         # get cartesian product of activities (because relation is not symmetrical)
         combs = itertools.product(groups_expanded.keys(), repeat=2)
         # iterate over pairs
-        for pair in combs:
+
+        bar = tqdm(list(combs))
+        bar.set_description("Calculating always-before")
+        for pair in bar:
 
             # get positions of both acts in one df
             merged = groups_expanded[pair[0]].merge(
@@ -248,25 +253,25 @@ class LogSkeleton:
             test = grouped.agg({'order_x': 'min',
                                 'order_y': 'min'})
 
+            num = len(test)
             # handling if both activities are the same
             if pair[0] == pair[1]:
                 # if they actually occur more than 1 time in every case --> they are in the relation
-                if all(merged[case_col].value_counts() > 1):
+                if np.sum(merged[case_col].value_counts() > 1) >= num*(1-noise_threshold):
                     always_before.add(pair)
 
             # else test if the first occurrence of act1 is after the first occurrence of act2
             # and add to relation
-            elif all(test["order_x"] > test["order_y"]):
+            elif np.sum(test["order_x"] > test["order_y"]) >= num*(1-noise_threshold):
                 always_before.add(pair)
 
         return always_before
 
+
     def _get_never_together(self, noise_threshold, case_id=None):
         """
         Returns the never together relation of the log skeleton. two activities are related if and only if they do not occur together in any trace.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
-        :return: pandas.DataFrame
+        :return: set
         """
         never_together = set()
 
@@ -294,21 +299,24 @@ class LogSkeleton:
         # get all pairs of activities
         combs = itertools.permutations(groups_expanded.keys(), 2)
 
+        bar = tqdm(list(combs))
+        bar.set_description("Calculating never-together")
         # iterate over pairs
-        for pair in combs:
+        for pair in bar:
+            num = len(groups_expanded[pair[0]][case_col])
             # check if act1 and act2 do not occur in same case
-            if not any(groups_expanded[pair[0]][case_col].isin(groups_expanded[pair[1]][case_col])):
-                # only add tuple if same in reverse order is not already in set
-                # if tuple((pair[1], pair[0])) not in equivalence:
+            if np.sum(groups_expanded[pair[0]][case_col].isin(groups_expanded[pair[1]][case_col]))\
+                <= num*(noise_threshold):
+
                 never_together.add(pair)
         return never_together
+
 
     def _get_directly_follows(self, noise_threshold, case_id=None):
         """
         Returns the directly follows relation of the log skeleton. two activities are related if and only if an occurrence the first activity can directly be followed by an occurrence of the second.
-        :param extended_log: pandas.DataFrame
-        :param noise_threshold: int
-        :return: pandas.DataFrame
+        :param noise_threshold: [0,1]
+        :return: set
         """
         query = PQL()
         query.add(
@@ -340,8 +348,16 @@ class LogSkeleton:
         edge_table = edge_table[edge_table['count'] >= threshold]
 
         directly_follows = set()
+
+        iterations = len(edge_table)
+        i = 1
+        bar = tqdm(total=iterations)
+        bar.set_description("Calculating directly-follows")
         for _, row in edge_table.iterrows():
             directly_follows.add((row["SOURCE"], row["TARGET"]))
+
+            bar.update(1)
+            i += 1
 
         return directly_follows
 
@@ -404,6 +420,42 @@ class LogSkeleton:
         :return: str
         """
         return PQLFilter(query=f""" "{activity_table}"."{case_col}" = '{case_id}' """)
+
+
+    def _active_freq(self):
+        """
+        returns for each activity, the number of possible occurrences per trace
+        :return:
+        """
+        query = PQL()
+        query.add(PQLColumn(name=case_col,
+                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="max nr", query=f"""
+                        PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
+                        ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
+        df = datamodel.get_data_frame(query)
+
+        case_ids = list(df[case_col].unique())
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
+                           for k, v in groups.items()}
+
+        bar = tqdm(groups_expanded.items())
+        bar.set_description("Computing active frequencies")
+        for act, occ in bar:
+            groups_expanded[act] = set(groups_expanded[act]["max nr"])
+            if not (case_ids == list(occ[case_col].unique())):
+                groups_expanded[act].add(0)
+
+        return groups_expanded
 
 # # unused function
 # def get_candidate_pairs(activities, activities_of_cases_with_same_max_act):
