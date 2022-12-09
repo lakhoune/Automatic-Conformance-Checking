@@ -36,7 +36,7 @@ class LogSkeleton:
     def get_log_skeleton(self, noise_threshold=0):
         """
         Returns the log skeleton of the data model.
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :return: relations and active frequencies as set
         """
         log_skeleton = None
@@ -77,7 +77,7 @@ class LogSkeleton:
     def _get_relations(self, noise_threshold=0):
         """
         Returns the relations of the log skeleton.
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :return: (equivalence, always_after, always_before, never_together, directly_follows)
         """
         equivalence = self._get_equivalence(noise_threshold)
@@ -93,7 +93,7 @@ class LogSkeleton:
     def _get_equivalence(self, noise_threshold, case_id=None):
         """
         Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :return: set
         """
         equivalence = set()
@@ -142,7 +142,7 @@ class LogSkeleton:
         """
         Returns the always after relation of the log skeleton.  two activities are related if and only if after any occurrence of the first activity the second activity always occurs.
         If the case ID filter is set, the always after relation is only computed for the trace with the given case ID.
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :param case_id: str
         :return: set
         """
@@ -207,7 +207,7 @@ class LogSkeleton:
     def _get_always_before(self, noise_threshold, case_id=None):
         """
         Returns the always before relation of the log skeleton.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :return: set
         """
         always_before = set()
@@ -315,7 +315,7 @@ class LogSkeleton:
     def _get_directly_follows(self, noise_threshold, case_id=None):
         """
         Returns the directly follows relation of the log skeleton. two activities are related if and only if an occurrence the first activity can directly be followed by an occurrence of the second.
-        :param noise_threshold: int
+        :param noise_threshold: [0,1]
         :return: set
         """
         query = PQL()
