@@ -1,7 +1,7 @@
 import pandas as pd
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 from pyinsights.conformance import alignment_scores
-
+from tqdm import tqdm
 
 class ResourceProfiler:
     """
@@ -198,8 +198,8 @@ class ResourceProfiler:
 
         return df
 
-    def cases_with_batches(self, time_unit="HOURS", reference_unit=None, min_batch_size=2, batch_percentage=0.1
-                           , grouped_by_batches=False, batch_types=False):
+    def cases_with_batches(self, time_unit="HOURS", reference_unit=None, min_batch_size=8, batch_percentage=0.1
+                           , grouped_by_batches=True, batch_types=True):
 
         """
         returns cases with batches according to occurrences per time_unit, can also identify batch type
@@ -285,10 +285,11 @@ class ResourceProfiler:
 
 
         # iterate over groups
-        i = 1
-        target = len(groups)
-        for group in groups:
-            print(f"iteration: {i}/{target}")
+
+        bar = tqdm(groups)
+        bar.set_description("Batch Types:")
+        for group in bar:
+
             # remember timestamps of last iteration
             last_start = 0
             last_end = 0
@@ -343,6 +344,5 @@ class ResourceProfiler:
                 group_type = "sequential"
             # set batch type
             df.loc[group, "batch type"] = group_type
-            i += 1
         return df
 

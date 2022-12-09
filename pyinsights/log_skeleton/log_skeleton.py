@@ -33,11 +33,11 @@ class LogSkeleton:
         timestamp = self.connector.timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
 
-    def get_log_skeleton(self, noise_threshold):
+    def get_log_skeleton(self, noise_threshold=0):
         """
         Returns the log skeleton of the data model.
         :param noise_threshold: int
-        :return: relations as set
+        :return: relations and active frequencies as set
         """
         log_skeleton = None
         # Get the extended log
@@ -45,12 +45,10 @@ class LogSkeleton:
         equivalence, always_after, always_before, never_together, directly_follows \
             = self._get_relations(noise_threshold)
 
-        directly_follows_counter = None
-        sum_counter = None
-        min_counter = None
-        max_counter = None
+        active_frequs = self._active_freq()
+
         log_skeleton = (equivalence, always_after, always_before, never_together,
-                        directly_follows, directly_follows_counter, sum_counter, min_counter, max_counter)
+                        directly_follows, active_frequs)
 
         return log_skeleton
 
@@ -422,6 +420,40 @@ class LogSkeleton:
         :return: str
         """
         return PQLFilter(query=f""" "{activity_table}"."{case_col}" = '{case_id}' """)
+
+
+    def _active_freq(self):
+        """
+        returns number of possible activities per trace
+        :return:
+        """
+        query = PQL()
+        query.add(PQLColumn(name=case_col,
+                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="max nr", query=f"""
+                        PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
+                        ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
+        df = datamodel.get_data_frame(query)
+
+        case_ids = list(df[case_col].unique())
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
+                           for k, v in groups.items()}
+
+        for act, occ in groups_expanded.items():
+            groups_expanded[act] = set(groups_expanded[act]["max nr"])
+            if not (case_ids == list(occ[case_col].unique())):
+                groups_expanded[act].add(0)
+
+        return groups_expanded
 
 # # unused function
 # def get_candidate_pairs(activities, activities_of_cases_with_same_max_act):

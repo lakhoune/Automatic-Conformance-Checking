@@ -125,7 +125,15 @@ identify deviating cases based on it.
   <img width="" src="docs/images/temporal_deviations_example.PNG" />
 </p>
 
+### Log Skeleton Example
+Pyinsights can compute the log skeleton of a log.
+````python
+from pyinsights.log_skeleton import LogSkeleton
 
+skeleton = LogSkeleton(connector)
+
+equivalence, always_after, always_before, never_together, directly_follows, active_frequs = skeleton.get_log_skeleton(noise_threshold=0)
+````
 ## Citations
 
 Pyinsights implements some approaches on conformance checking first suggested in research.
