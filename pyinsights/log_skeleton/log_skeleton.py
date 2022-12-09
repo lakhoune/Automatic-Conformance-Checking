@@ -424,7 +424,7 @@ class LogSkeleton:
 
     def _active_freq(self):
         """
-        returns number of possible activities per trace
+        returns for each activity, the number of possible occurrences per trace
         :return:
         """
         query = PQL()
@@ -448,7 +448,9 @@ class LogSkeleton:
         groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
                            for k, v in groups.items()}
 
-        for act, occ in groups_expanded.items():
+        bar = tqdm(groups_expanded.items())
+        bar.set_description("Computing active frequencies")
+        for act, occ in bar:
             groups_expanded[act] = set(groups_expanded[act]["max nr"])
             if not (case_ids == list(occ[case_col].unique())):
                 groups_expanded[act].add(0)
