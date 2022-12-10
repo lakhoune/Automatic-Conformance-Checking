@@ -23,8 +23,11 @@ def convert_df(df):
 
 @st.experimental_memo
 def columns(_model, model_url):
-    return [{'name': ""}] + _model.default_activity_table.columns
+    model_columns = _model.default_activity_table.columns
+    cols = {"endtime": [{'name': ""}] + [x for x in model_columns if x["type"] == "DATE"],
+            "resource": [{'name': ""}] + [x for x in model_columns if x["type"] != "DATE"]}
 
+    return cols
 
 def name_of_col(model):
     if model["name"] == "":
@@ -98,8 +101,8 @@ if "connector" not in st.session_state:
         st.experimental_rerun()
 
 
-if "connector" in st.session_state:
-    st.text("""Select a datamodel and the necessary columns on the right.
+elif "connector" in st.session_state:
+    st.caption("""Select a datamodel and the necessary columns on the right.
 Select your choices with the button below them. Then, select your prefered methods and set the necessary parameters.
 After that, you can just click on 'Get deviations'!""")
 
@@ -122,16 +125,19 @@ After that, you can just click on 'Get deviations'!""")
         else:
             with st.form("model"):
                 columns = columns(model_option, model_option.url)
-                end_timestamp = st.selectbox("Input end-timestamp column", columns,format_func=name_of_col)
-                resource_col = st.selectbox("Input resource column", columns, format_func=name_of_col)
+                end_timestamp = st.selectbox("Input end-timestamp column", columns["endtime"],format_func=name_of_col)
+                resource_col = st.selectbox("Input resource column", columns["resource"], format_func=name_of_col)
                 model_submitted = st.form_submit_button("Select Model")
 
             if model_submitted:
                 set_datamodel(model_option, end_timestamp, resource_col)
 
+
             method_option = st.multiselect("Choose methods", ("Temporal Profiling", "Resource Profiling", "Log Skeleton"))
 
-            if "Temporal Profiling" in method_option:
+            st.subheader("Parameters")
+            tab1, tab2, tab3 = st.tabs(["Temporal Profile", "Resource Profile", "Log Skeleton"])
+            with tab1:
                 col1, col2 = st.columns(2)
                 with col1:
                     sigma = st.number_input(label="Sigma", value=6)
@@ -139,8 +145,9 @@ After that, you can just click on 'Get deviations'!""")
                     deviation_cost = st.checkbox("Deviation cost", value=True)
                     extended_view = st.checkbox("Extended view", value=True)
 
-            if "Resource Profiling" in method_option:
+            with tab2:
                 col1, col2 = st.columns(2)
+
                 with col1:
                     time_unit = st.selectbox("Time unit", ["SECONDS", "MINUTES", "HOURS", "DAY", "MONTH"], index=2)
                     reference_unit = st.selectbox("Reference unit", ["MINUTES", "HOURS", "DAY", "MONTH", None], index=4)
@@ -149,19 +156,18 @@ After that, you can just click on 'Get deviations'!""")
                     batch_percentage = st.number_input(label="Batch percentage", value=0.1, step=0.1)
                     grouped_by_batches = st.selectbox("Grouped", [True, False])
                     batch_types = st.selectbox("Batch types", [True, False])
-
-            if "Log Skeleton" in method_option:
+            with tab3:
                 noise_treshold = st.number_input(label="Noise-threshold",value=0.0, step=0.1)
     if run:
         success = False
         st.subheader("Deviations:")
         with st.spinner("Calculating deviations"):
-            if method_option == "Temporal Profiling":
+            if "Temporal Profiling" in method_option:
                 st.session_state.connector.set_parameters(end_timestamp=end_timestamp["name"])
                 df = temporal_deviations(end_timestamp["name"], resource_col["name"],
                                          sigma, deviation_cost, extended_view)
                 success = True
-            elif method_option == "Resource Profiling":
+            elif "Resource Profiling" in method_option:
                 if resource_col["name"] != "":
                     df = resource_deviations(end_timestamp["name"], resource_col["name"],
                                              time_unit=time_unit, reference_unit=reference_unit,
