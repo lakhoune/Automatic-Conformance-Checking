@@ -43,7 +43,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         except Exception as e:
             self.celonis = None
             print(e)
-            print("celonis error")
+            raise Exception
 
     def connect(self):
         """

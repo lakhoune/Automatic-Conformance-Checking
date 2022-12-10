@@ -30,11 +30,11 @@ def name_of_col(model):
     if model["name"] == "":
         return "None"
     else:
-        return model["name"]
+        return f"""{model["name"]}, {model["type"]}"""
 
 
 @st.experimental_memo
-def set_datamodel(_model, endtime, resource_col):
+def set_datamodel(_model, endtime, resource_co):
     st.session_state.connector.datamodel = _model
     st.session_state.connector.set_parameters(end_timestamp=endtime["name"])
     st.session_state.resource_col = resource_col["name"]
@@ -74,8 +74,8 @@ st.markdown("""<style>
     min-width: auto;
     max-width: initial;
     }
-    div.css-1vq4p4l {
-    padding: 3rem 1rem 1.5rem;
+       div.css-1vq4p4l {
+    padding: 0.0rem 1rem 1.5rem;
     }
 
             </style>""", unsafe_allow_html=True)
@@ -87,14 +87,22 @@ if "connector" not in st.session_state:
     with st.form("login"):
         url = st.text_input("Celonis URL", celonis_url)
         api_token = st.text_input("Api token", token)
+        key_type = st.selectbox(options=["USER_KEY", "APP_KEY"], label="Key type")
         login = st.form_submit_button("Login")
 
     if login:
-        st.session_state.connector = Connector(api_token=api_token, url=url, key_type="USER_KEY")
+        try:
+            st.session_state.connector = Connector(api_token=api_token, url=url, key_type=key_type)
+        except:
+            st.error("Couldn't login. Try again")
         st.experimental_rerun()
 
 
 if "connector" in st.session_state:
+    st.text("""Select a datamodel and the necessary columns on the right.
+Select your choices with the button below them. Then, select your prefered methods and set the necessary parameters.
+After that, you can just click on 'Get deviations'!""")
+
     col1, col2, _, col4 = st.columns(4)
     # with col1:
     #     st.success("Successfully logged in to celonis", icon="✅")
@@ -106,35 +114,44 @@ if "connector" in st.session_state:
     with st.sidebar:
         st.subheader("Config")
         models = st.session_state.connector.celonis.datamodels
-        model_option = st.selectbox("Choose datamodel", models)
-        with st.form("model"):
-            columns = columns(model_option, model_option.url)
-            end_timestamp = st.selectbox("Input end-timestamp column", columns,format_func=name_of_col)
-            resource_col = st.selectbox("Input resource column", columns, format_func=name_of_col)
-            model_submitted = st.form_submit_button("Select Model")
+        model_option = st.selectbox("Choose datamodel", models, label_visibility="collapsed")
 
-        if model_submitted:
-            set_datamodel(model_option, end_timestamp, resource_col)
+        if model_option is None:
+            st.error("Not enough permissions to get models. Change key type!")
 
-        method_option = st.selectbox("Choose method", ("Temporal Profiling", "Resource Profiling"))
+        else:
+            with st.form("model"):
+                columns = columns(model_option, model_option.url)
+                end_timestamp = st.selectbox("Input end-timestamp column", columns,format_func=name_of_col)
+                resource_col = st.selectbox("Input resource column", columns, format_func=name_of_col)
+                model_submitted = st.form_submit_button("Select Model")
 
-        if method_option == "Temporal Profiling":
-            sigma = st.number_input(label="Sigma", value=6)
-            deviation_cost = st.selectbox("Deviation cost", [True, False])
-            extended_view = st.selectbox("Extended view", [True, False])
+            if model_submitted:
+                set_datamodel(model_option, end_timestamp, resource_col)
 
-        if method_option == "Resource Profiling":
-            col1, col2 = st.columns(2)
-            with col1:
-                time_unit = st.selectbox("Time unit", ["SECONDS", "MINUTES", "HOURS", "DAY", "MONTH"], index=2)
-                reference_unit = st.selectbox("Reference unit", ["MINUTES", "HOURS", "DAY", "MONTH", None], index=4)
-                min_batch_size = st.number_input(label="Min batch size", value=2)
-            with col2:
-                batch_percentage = st.number_input(label="Batch percentage", value=0.1, step=0.1)
-                grouped_by_batches = st.selectbox("Grouped", [True, False])
-                batch_types = st.selectbox("Batch types", [True, False])
+            method_option = st.multiselect("Choose methods", ("Temporal Profiling", "Resource Profiling", "Log Skeleton"))
 
+            if "Temporal Profiling" in method_option:
+                col1, col2 = st.columns(2)
+                with col1:
+                    sigma = st.number_input(label="Sigma", value=6)
+                with col2:
+                    deviation_cost = st.checkbox("Deviation cost", value=True)
+                    extended_view = st.checkbox("Extended view", value=True)
 
+            if "Resource Profiling" in method_option:
+                col1, col2 = st.columns(2)
+                with col1:
+                    time_unit = st.selectbox("Time unit", ["SECONDS", "MINUTES", "HOURS", "DAY", "MONTH"], index=2)
+                    reference_unit = st.selectbox("Reference unit", ["MINUTES", "HOURS", "DAY", "MONTH", None], index=4)
+                    min_batch_size = st.number_input(label="Min batch size", value=2)
+                with col2:
+                    batch_percentage = st.number_input(label="Batch percentage", value=0.1, step=0.1)
+                    grouped_by_batches = st.selectbox("Grouped", [True, False])
+                    batch_types = st.selectbox("Batch types", [True, False])
+
+            if "Log Skeleton" in method_option:
+                noise_treshold = st.number_input(label="Noise-threshold",value=0.0, step=0.1)
     if run:
         success = False
         st.subheader("Deviations:")
@@ -156,17 +173,17 @@ if "connector" in st.session_state:
                 else:
                     st.error("Please select a valid resource column!")
 
-            if success:
-                st.write(f"{df.shape[0]} deviations found")
-                st.dataframe(df)
+        if success:
+            st.write(f"{df.shape[0]} deviations found")
+            st.dataframe(df)
 
-                csv = convert_df(df)
-                st.download_button(
-                    label="Download data as CSV",
-                    data=csv,
-                    file_name='deviations.csv',
-                    mime='text/csv',
-                )
+            csv = convert_df(df)
+            st.download_button(
+                label="Download data as CSV",
+                data=csv,
+                file_name='deviations.csv',
+                mime='text/csv',
+            )
 
 
 
