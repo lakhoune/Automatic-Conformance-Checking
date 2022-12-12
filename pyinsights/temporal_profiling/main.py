@@ -11,11 +11,10 @@ from pm4py.algo.discovery.temporal_profile import algorithm as temporal_profile_
 from pm4py.algo.conformance.temporal_profile import algorithm as temporal_profile_conformance
 from pyinsights.log_skeleton import LogSkeleton
 if __name__ == "__main__":
+
     celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
     api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
-    from pyinsights import Connector
-    from pyinsights.organisational_profiling import ResourceProfiler
 
     # define connector and connect to celonis
     connector = Connector(api_token=api_token, url=celonis_url, key_type="USER_KEY")
@@ -36,5 +35,17 @@ if __name__ == "__main__":
     print(always_before)
     print(never_together)
     print(directly_follows)
+
+    connector.set_parameters(model_id=id)#, end_timestamp="END_DATE")
+
+    # init temporal profiler
+    temporal_profiler = TemporalProfiler(connector=connector)
+
+    #compute temporal profile (not necessary for next steps)
+    #temporal_profile = temporal_profiler.temporal_profile()
+    # compute deviating cases with deviation cost
+    deviating_cases_df = temporal_profiler.deviating_cases(extended_view=False)
+    # compute deviating events
+
 
     print(connector.events())
