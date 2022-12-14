@@ -1,8 +1,11 @@
+import seaborn as sns
+import numpy as np
+import pandas as pd
 import streamlit as st
-#from st_aggrid import AgGrid
 # import pillow as pil
 # from docutils.nodes import title
 # import AgGrid as ag
+from st_aggrid import AgGrid
 #from streamlit_pagination import pagination_component
 # from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 # from st_aggrid import AgGrid
@@ -11,7 +14,7 @@ from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.organisational_profiling import ResourceProfiler
 import pandas as pd
 # import seaborn as sns
-# import plotly.express as px
+import plotly.express as px
 
 celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
 token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
@@ -221,16 +224,16 @@ if "connector" in st.session_state:
 #                st.line_chart(df)
                 csv = convert_df(df)
 
-#                opt = st.radio('Plot type:', ['Bar', 'Pie'])
-#            if opt == 'Bar':
-#                fig = px.bar(df, y="waiting time", title='Bar Chart')
-#                st.plotly_chart(fig)
-#            else:
-#               fig = px.pie(df, y="waiting time", title='Pie Chart')
-#               st.plotly_chart(fig)
+                opt = st.radio('Plot type:', ['Bar', 'Pie'])
+            if opt == 'Bar':
+                fig = px.bar(df, y="waiting time", title='Bar Chart')
+                st.plotly_chart(fig)
+            else:
+                fig = px.pie(df, y="waiting time", title='Pie Chart')
+                st.plotly_chart(fig)
 
-                st.bar_chart(data=df,  y="waiting time", use_container_width=True)
-                st.pie_chart(data=df, y="waiting time", use_container_width=True)
+#                st.bar_chart(data=df,  y="waiting time", use_container_width=True)
+#                st.pie_chart(data=df, y="waiting time", use_container_width=True)
                 st.download_button(
                     label="Download data as CSV",
                     data=csv,
