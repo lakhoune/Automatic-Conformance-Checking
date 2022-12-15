@@ -1,4 +1,7 @@
 
+import sys
+sys.path.append("C:/Users/infer/PycharmProjects/Automatic-Conformance-Checking/")
+
 import numpy as np
 import pandas as pd
 from pycelonis import get_celonis
@@ -26,15 +29,7 @@ if __name__ == "__main__":
     print("Input id of datamodel:")
     id = input()
 
-    connector.set_parameters(model_id=id)
+    connector.set_parameters(model_id=id, end_timestamp="END_DATE")
 
-    skeleton = LogSkeleton(connector)
-    equivalence, always_after, always_before, never_together, directly_follows = skeleton._get_relations()
-
-    print(equivalence)
-    print(always_after)
-    print(always_before)
-    print(never_together)
-    print(directly_follows)
-
-    print(connector.events())
+    from pyinsights.ml.statistics import get_features
+    get_features(connector=connector)
