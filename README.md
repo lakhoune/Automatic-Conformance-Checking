@@ -9,7 +9,8 @@ We aim at a seamless integration with one of the leading process mining tools [C
 - pandas
 - pycelonis == 1.7.3
 - pm4py == 2.2.23
-
+- sklearn
+- prince
 ## Install
 
 - Install pycelonis
