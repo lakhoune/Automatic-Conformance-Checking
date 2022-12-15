@@ -3,7 +3,16 @@ from pyinsights.temporal_profiling import TemporalProfiler
 
 
 def get_features(connector):
+    """
+    Computes numerical features for cases
+    Args:
+        connector (pyinsights.Connector): connector
+
+    Returns:
+        pandas.Dataframe: numerical features on case level
+    """    
     
+    # vars
     datamodel = connector.datamodel
     activity_table = connector.activity_table()
     case_col = connector.case_col()
@@ -12,33 +21,53 @@ def get_features(connector):
     end_timestamp = connector.end_timestamp()
     has_endtime = connector.has_end_timestamp()
     
+    # queries for features
     case_query = f""" "{activity_table}"."{case_col}" """
     throughput = f"""  CALC_THROUGHPUT ( CASE_START TO CASE_END , REMAP_TIMESTAMPS ( "{activity_table}"."{timestamp}" , SECONDS ) )   """
     num_activities = f"""CALC_REWORK()  """
     biggest_loop = f"""  MAX( INDEX_ACTIVITY_LOOP ( "{activity_table}"."{act_col}" ) ) """
-    temporal_features = _temporal_features(connector)
-    print(temporal_features.head(n=100).to_string())
     
+    temporal_features = _temporal_features(connector)
+    
+    # get df with other features
     query = PQL()
     query += PQLColumn(name=case_col, query=case_query)
     query += PQLColumn(name="throughput", query=throughput)
     query += PQLColumn(name="num activities", query=num_activities)
     query += PQLColumn(name="biggest loop", query=biggest_loop)
-   
+    
+    # join with temporal features
     df = datamodel.get_data_frame(query)
     df = df.join(temporal_features, on=case_col, how="left")
+    
+    # if there are two timestamps, compute wasted time per case
     if has_endtime:
         df.loc[:, "wasted time"] = df.loc[:, "throughput"] - df.loc[:, "sojourn"]
         
     print(df.head(n=100).to_string())
-        
+    return df
+
 def _temporal_features(connector):
+    """
+    returns temporal features
+
+    Args:
+        connector (pyinsights.Connector): connector
+
+    Returns:
+        pandas.DataFrame: temporal features per case
+    """
+    
+    # usual vars
     has_endtime = connector.has_end_timestamp()
     case_col = connector.case_col()
     
+    # get temporal profile per case
     temporal_profiler = TemporalProfiler(connector)
     temp_profile = temporal_profiler.deviating_cases(sigma=0, deviation_cost=False, extended_view=True)
     
+    # compute features
+    # #if there are two timestamps per event, also use sojourn time
     if has_endtime:
         columns =  [case_col, "waiting time", "z-score (waiting time)", "sojourn", "z-score (sojourn)"]
         temp_profile = temp_profile.loc[:, columns]

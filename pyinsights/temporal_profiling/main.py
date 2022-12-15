@@ -27,9 +27,9 @@ if __name__ == "__main__":
     print("Available datamodels:")
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
-    id = input()
+    id = "376145f1-790d-4deb-8e20-083a4dfd7ca7"
 
     connector.set_parameters(model_id=id, end_timestamp="END_DATE")
 
-    from pyinsights.ml.statistics import get_features
-    get_features(connector=connector)
+    from pyinsights.ml import anomaly_detection
+    print(anomaly_detection(connector=connector).head(n=100).to_string())

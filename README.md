@@ -134,6 +134,19 @@ skeleton = LogSkeleton(connector)
 
 equivalence, always_after, always_before, never_together, directly_follows, active_frequs = skeleton.get_log_skeleton(noise_threshold=0)
 ````
+
+### Anomaly Detection Example
+Pyinsights can identify anomalous cases based on IsolationForests.
+````python
+from pyinsights.ml import anomaly_detection
+
+connector.set_parameters(model_id=id, end_timestamp="END_DATE")
+anomaly_detection(connector=connector)
+````
+<p align="center">
+  <img width="" src="docs/images/anomaly_ex.PNG" />
+</p>
+
 ## Citations
 
 Pyinsights implements some approaches on conformance checking first suggested in research.
