@@ -24,7 +24,8 @@ We aim at a seamless integration with one of the leading process mining tools [C
 - pandas
 - pycelonis == 1.7.3
 - pm4py == 2.2.23
-
+- sklearn
+- prince
 ## Install
 
 - Install pycelonis
@@ -140,6 +141,27 @@ identify deviating cases based on it.
   <img width="" src="docs/images/temporal_deviations_example.PNG" />
 </p>
 
+### Log Skeleton Example
+Pyinsights can compute the log skeleton of a log.
+````python
+from pyinsights.log_skeleton import LogSkeleton
+
+skeleton = LogSkeleton(connector)
+
+equivalence, always_after, always_before, never_together, directly_follows, active_frequs = skeleton.get_log_skeleton(noise_threshold=0)
+````
+
+### Anomaly Detection Example
+Pyinsights can identify anomalous cases based on IsolationForests.
+````python
+from pyinsights.ml import anomaly_detection
+
+connector.set_parameters(model_id=id, end_timestamp="END_DATE")
+anomaly_detection(connector=connector)
+````
+<p align="center">
+  <img width="" src="docs/images/anomaly_ex.PNG" />
+</p>
 
 ## Citations
 

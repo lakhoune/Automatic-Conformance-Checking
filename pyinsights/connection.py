@@ -1,9 +1,6 @@
 from pycelonis import get_celonis, __version__
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 
-pycelonis_version = "1.7.3"
-assert __version__ == pycelonis_version, f"Wrong pycelonis version: {__version__}, make sure you are using version {pycelonis_version}"
-
 
 class Connector:
     """
