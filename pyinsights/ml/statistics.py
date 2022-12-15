@@ -12,12 +12,25 @@ def get_features(connector):
     end_timestamp = connector.end_timestamp()
     has_endtime = connector.has_end_timestamp()
     
-    
+    case_query = f""" "{activity_table}"."{case_col}" """
     throughput = f"""  CALC_THROUGHPUT ( CASE_START TO CASE_END , REMAP_TIMESTAMPS ( "{activity_table}"."{timestamp}" , SECONDS ) )   """
     num_activities = f"""CALC_REWORK()  """
-    
+    biggest_loop = f"""  MAX( INDEX_ACTIVITY_LOOP ( "{activity_table}"."{act_col}" ) ) """
     temporal_features = _temporal_features(connector)
     print(temporal_features.head(n=100).to_string())
+    
+    query = PQL()
+    query += PQLColumn(name=case_col, query=case_query)
+    query += PQLColumn(name="throughput", query=throughput)
+    query += PQLColumn(name="num activities", query=num_activities)
+    query += PQLColumn(name="biggest loop", query=biggest_loop)
+   
+    df = datamodel.get_data_frame(query)
+    df = df.join(temporal_features, on=case_col, how="left")
+    if has_endtime:
+        df.loc[:, "wasted time"] = df.loc[:, "throughput"] - df.loc[:, "sojourn"]
+        
+    print(df.head(n=100).to_string())
         
 def _temporal_features(connector):
     has_endtime = connector.has_end_timestamp()
@@ -34,7 +47,7 @@ def _temporal_features(connector):
                 max_waiting = ("waiting time", 'max'),
                 z_score_waiting = ("z-score (waiting time)", 'mean'),
                 z_score_waiting_max = ("z-score (waiting time)", 'max'),
-                sojourn_time = ("sojourn", 'sum'),
+                sojourn = ("sojourn", 'sum'),
                 max_sojourn = ("sojourn", 'max'),
                 z_score_sojourn = ("z-score (sojourn)", 'mean'),
                 z_score_sojourn_max = ("z-score (sojourn)", 'max')
