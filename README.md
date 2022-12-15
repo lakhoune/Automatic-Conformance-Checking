@@ -8,34 +8,19 @@ We aim at a seamless integration with one of the leading process mining tools [C
 - numpy
 - pandas
 - pycelonis == 1.7.3
-- pm4py == 2.2.23
+- pm4py
+- streamlit
+- scikit-learn
+- prince
+- seaborn
+- plotly
 
 ## Install
-
-- Install pycelonis
-
-  ```sh
-  pip install --extra-index-url=https://pypi.celonis.cloud/ pycelonis=="1.7.3"
-  ```
-
-- Install dotenv
-
-  ```sh
-  pip install python-dotenv
-  ```
-
-## `pyinsights is not a module`
-
-This means you need to `/path/to/pyinsights-folder` to `PYTHONPATH` environment variable
-
-## `packaging is not a module`
-
-Pycelonis relies on this package but does not seem to install it, so we install it manually
-
+Just do
 ```sh
-pip install packaging
+pip install .
 ```
-
+and pip will take care of the rest!
 ## Usage Examples
 
 ### Resource Profiling Example
