@@ -3,6 +3,7 @@ from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 from pyinsights.conformance import alignment_scores
 from tqdm import tqdm
 
+
 class ResourceProfiler:
     """
     Instantiate a ResourceProfiler
@@ -21,11 +22,10 @@ class ResourceProfiler:
     transition_mode = None
     end_timestamp = None
 
-    def __init__(self, connector, resource_column):
+    def __init__(self, connector):
         """
         init class
         :param connector: pycelonis.Connector
-        :param resource_column: name of resource column in log
         """
 
         # init class
@@ -49,7 +49,7 @@ class ResourceProfiler:
         timestamp = self.connector.timestamp()
         end_timestamp = self.connector.end_timestamp()
         transition_mode = "ANY_OCCURRENCE[] TO ANY_OCCURRENCE[]"
-        res_col = resource_column
+        res_col = self.connector.resource_column()
         has_endtime = self.connector.has_end_timestamp()
 
     def resource_profile(self, time_unit="HOURS", reference_unit=None):
@@ -61,7 +61,8 @@ class ResourceProfiler:
         """
 
         # get query for resource profiler
-        query = self._resource_profile_query(time_unit=time_unit, reference_unit=reference_unit)
+        query = self._resource_profile_query(
+            time_unit=time_unit, reference_unit=reference_unit)
         df = datamodel.get_data_frame(query)
 
         return df
@@ -160,7 +161,8 @@ class ResourceProfiler:
 
         # include occurrences per reference unit
         if reference_unit is not None:
-            query += PQLColumn(name=f"# this {reference_unit}", query=times_per_reference)
+            query += PQLColumn(name=f"# this {reference_unit}",
+                               query=times_per_reference)
 
         if filtered:
             # include occurrences per reference unit
@@ -178,7 +180,6 @@ class ResourceProfiler:
             query += PQLFilter(batch_filter)
 
         return query
-
 
     def _detect_batches(self, time_unit="HOURS", reference_unit=None, min_batch_size=2, batch_percentage=0.1):
         """
@@ -198,9 +199,7 @@ class ResourceProfiler:
 
         return df
 
-    def cases_with_batches(self, time_unit="HOURS", reference_unit=None, min_batch_size=8, batch_percentage=0.1
-                           , grouped_by_batches=True, batch_types=True):
-
+    def cases_with_batches(self, time_unit="HOURS", reference_unit=None, min_batch_size=8, batch_percentage=0.1, grouped_by_batches=True, batch_types=True):
         """
         returns cases with batches according to occurrences per time_unit, can also identify batch type
         type one of [ "batching at start", batching at end", "sequential", "concurrent" ]
@@ -261,7 +260,8 @@ class ResourceProfiler:
 
         # truncated timestamp to time_unit
         # group by groups
-        df["truncated"] = df[timestamp].dt.to_period(freq_offset).dt.to_timestamp()
+        df["truncated"] = df[timestamp].dt.to_period(
+            freq_offset).dt.to_timestamp()
         grouped = df.groupby(['truncated', act_col, 'resource'])
         # get groups as arrays in list
         groups = [group.values for group in grouped.groups.values()]
@@ -282,7 +282,6 @@ class ResourceProfiler:
         :return: pandas.core.Dataframe
         """
         df["batch type"] = ""
-
 
         # iterate over groups
 
@@ -345,4 +344,3 @@ class ResourceProfiler:
             # set batch type
             df.loc[group, "batch type"] = group_type
         return df
-
