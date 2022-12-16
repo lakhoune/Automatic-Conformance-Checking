@@ -6,7 +6,7 @@ from prince import PCA
 import numpy as np
 
 
-def anomaly_detection(connector, contamination=0.2):
+def anomaly_detection(connector, contamination='auto'):
     """
     Detects anomalous cases based on isolation forests
     Args:
@@ -31,6 +31,28 @@ def anomaly_detection(connector, contamination=0.2):
     scaler = StandardScaler()
     X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
+    # transform data with pca
+    X_pca = _pca(X)
+
+    # train isolationforest on log
+    clf = IsolationForest(
+        random_state=42, contamination=contamination).fit(X_pca)
+
+    # filter for anomalies
+    feature_df.loc[:, "anomaly score"] = clf.score_samples(X_pca)
+    feature_df.loc[:, "flag"] = clf.predict(X_pca)
+    feature_df = feature_df[feature_df["flag"] == -1]
+
+    # sort result
+    result = feature_df.loc[:, [case_col, "anomaly score"]].sort_values(
+        by="anomaly score")
+
+    print(f"""percent anomalies: {len(result) / len(X)} """)
+    # return
+    return result
+
+
+def _pca(X):
     # reduce dimensionalities with pca
     pca = PCA(n_components=3, n_iter=5, random_state=42)
     pca.fit(X)
@@ -40,17 +62,4 @@ def anomaly_detection(connector, contamination=0.2):
     print("Column Correlations")
     print(pca.column_correlations(X))
 
-    # train isolationforest on log
-    clf = IsolationForest(
-        random_state=42, contamination=contamination).fit(X_pca)
-
-    # filter for anomalies
-    feature_df.loc[:, "anomaly score"] = clf.score_samples(X_pca)
-    feature_df = feature_df[feature_df["anomaly score"] < 0]
-
-    # sort result
-    result = feature_df.loc[:, [case_col, "anomaly score"]].sort_values(
-        by="anomaly score")
-
-    # return
-    return result
+    return X_pca

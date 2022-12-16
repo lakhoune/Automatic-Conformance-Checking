@@ -28,7 +28,9 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         self.key_type = key_type
 
         global end_time
+        global resource_col
         end_time = None
+        resource_col = None
 
         try:
             self.celonis = get_celonis(
@@ -102,7 +104,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
         return timestamp
 
-    def set_parameters(self, pool_id=None, model_id=None, end_timestamp=None):
+    def set_parameters(self, pool_id=None, model_id=None, end_timestamp=None, resource_column=None):
         """
             sets celonis data parameters
             :param model_id: id of datamodel
@@ -117,12 +119,24 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         if end_timestamp is not None:
             self.end_time = end_timestamp
 
+        if resource_column is not None:
+            self.resource_col = resource_column
+
     def has_end_timestamp(self):
         """
         returns true if datamodel has end-timestamp
         :return: bool
         """
         return self.end_time is not None
+
+    def has_resource_column(self):
+        """returns true if datamodel has resource column
+        """
+
+        return self.resource_col is not None
+
+    def resource_column(self):
+        return self.resource_col
 
     def events(self):
         """
