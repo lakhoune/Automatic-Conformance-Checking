@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 from tqdm import tqdm
 
+
 class LogSkeleton:
     """
     Class for log skeleton analysis.
@@ -73,7 +74,6 @@ class LogSkeleton:
             by=case_col).agg({act_col: lambda x: ["START"] + list(x) + ["END"]})  # construct the bag of traces while adding an artificial start and end
         return bag_of_traces.values
 
-
     def _get_relations(self, noise_threshold=0):
         """
         Returns the relations of the log skeleton.
@@ -88,7 +88,6 @@ class LogSkeleton:
         # Get the relations
 
         return equivalence, always_after, always_before, never_together, directly_follows
-
 
     def _get_equivalence(self, noise_threshold, case_id=None):
         """
@@ -136,15 +135,16 @@ class LogSkeleton:
             else:
                 max = pair[1]
                 min = pair[0]
-            
+
             # get profiles for larger and smaller acts
             occ_max = groups_expanded[max]
             occ_min = groups_expanded[min]
 
             occurrences_max = len(groups_expanded[max])
-            
+
             # get difference betwwen two profiles
-            differences = occ_max[~occ_max.apply(tuple,1).isin(occ_min.apply(tuple,1))]
+            differences = occ_max[~occ_max.apply(
+                tuple, 1).isin(occ_min.apply(tuple, 1))]
 
             # if the two profiles deviate no more than noise * size of larger profile
             # they are equivalent
@@ -152,7 +152,6 @@ class LogSkeleton:
                 equivalence.add(pair)
 
         return equivalence
-
 
     def _get_always_after(self, noise_threshold, case_id=None):
         """
@@ -194,18 +193,19 @@ class LogSkeleton:
         # iterate over pairs
         for pair in bar:
             # get cases where act1 occurs merged with occurrences of act2 in these cases
-            merged = groups_expanded[pair[0]].merge(groups_expanded[pair[1]], how="left", on=case_col)
-           
+            merged = groups_expanded[pair[0]].merge(
+                groups_expanded[pair[1]], how="left", on=case_col)
+
             # get the result per case and get compute for every case
             # the greatest position for both activities
             grouped = merged.groupby(case_col)
             pos_per_case = grouped.agg({'order_x': 'max',
-                                'order_y': 'max'})
+                                        'order_y': 'max'})
 
             # fill nas so they don't screw up max
             pos_per_case.fillna(0, inplace=True)
             # length of act1's profile
-            num = len(groups_expanded[pair[0]])
+            num = groups_expanded[pair[0]][case_col].nunique()
 
             # handling if both activities are the same
             if pair[0] == pair[1]:
@@ -218,7 +218,6 @@ class LogSkeleton:
                 always_after.add(pair)
 
         return always_after
-
 
     def _get_always_before(self, noise_threshold, case_id=None):
         """
@@ -257,7 +256,7 @@ class LogSkeleton:
         bar = tqdm(list(combs))
         bar.set_description("Calculating always-before")
         for pair in bar:
-            
+
             # get positions of both acts in one df
             merged = groups_expanded[pair[0]].merge(
                 groups_expanded[pair[1]], on=case_col, how='left')
@@ -270,7 +269,7 @@ class LogSkeleton:
                                 'order_y': 'min'})
 
             # length of act1's profile
-            num = len(groups_expanded[pair[0]])
+            num = groups_expanded[pair[0]][case_col].nunique()
             # handling if both activities are the same
             if pair[0] == pair[1]:
                 # if they actually occur more than 1 time in every case --> they are in the relation
@@ -283,7 +282,6 @@ class LogSkeleton:
                 always_before.add(pair)
 
         return always_before
-
 
     def _get_never_together(self, noise_threshold, case_id=None):
         """
@@ -329,7 +327,7 @@ class LogSkeleton:
             else:
                 max = pair[1]
                 min = pair[0]
-            
+
             # larger and smaller profile w.r.t. cases
             occ_max = groups_expanded[max][case_col]
             occ_min = groups_expanded[min][case_col]
@@ -339,7 +337,6 @@ class LogSkeleton:
             if np.sum(occ_max.isin(occ_min)) <= num*(noise_threshold):
                 never_together.add(pair)
         return never_together
-
 
     def _get_directly_follows(self, noise_threshold, case_id=None):
         """
@@ -418,7 +415,8 @@ class LogSkeleton:
         equivalence, always_after, always_before, never_together, directly_follows = relations
 
         # get the equivalence relation for the given case
-        equivalence_for_case = self._get_equivalence(case_id, noise_threshold)
+        equivalence_for_case = self._get_equivalence(
+            case_id=case_id, noise_threshold=noise_threshold)
         # get the always after relation for the given case
         always_after_for_case = self._get_always_after(
             noise_threshold, case_id=case_id)
@@ -448,8 +446,10 @@ class LogSkeleton:
         :param case_id: str
         :return: str
         """
-        return PQLFilter(query=f""" "{activity_table}"."{case_col}" = '{case_id}' """)
-
+        # otherwise event logs with integer case ids wont work
+        if type(case_id) == str:
+            case_id = f""" '{case_id}' """
+        return PQLFilter(query=f""" "{activity_table}"."{case_col}" = {case_id} """)
 
     def _active_freq(self):
         """
