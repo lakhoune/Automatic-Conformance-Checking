@@ -440,9 +440,12 @@ class LogSkeleton:
         lsk_compare_traces = self.get_log_skeleton_per_case(
             case_id=cases_to_compare)
 
-        """TODO
-        check for each case if relation is subset of lsk
-        """
+        #check for each case if relation is subset of lsk
+        
+        non_conforming = {case for relation in lsk_compare_traces.keys(
+        ) for case in lsk_compare_traces[relation].keys() if not lsk_compare_traces[relation][case].issubset(lsk[relation])}
+
+        return non_conforming
 
     def _get_conformance_for_case(self, case_id, relations, noise_threshold):
         """
@@ -565,7 +568,7 @@ class LogSkeleton:
         # iterate over pairs
 
         bar = tqdm(list(combs))
-        bar.set_description("Calculating always-before")
+        bar.set_description("Calculating always-before for cases")
         for pair in bar:
 
             # get positions of both acts in one df
@@ -632,7 +635,7 @@ class LogSkeleton:
         # iterate over pairs
 
         bar = tqdm(list(combs))
-        bar.set_description("Calculating always-after")
+        bar.set_description("Calculating always-after for cases")
         for pair in bar:
 
             # get positions of both acts in one df
@@ -692,7 +695,7 @@ class LogSkeleton:
         case_ids = df[case_col].unique()
         nt_all_cases = {case: set() for case in case_ids}
         bar = tqdm(list(combs))
-        bar.set_description("Calculating never-together")
+        bar.set_description("Calculating never-together for cases")
         # iterate over pairs
         for pair in bar:
             occ_act1 = groups_expanded[pair[0]][case_col]
@@ -751,7 +754,7 @@ class LogSkeleton:
         # get all pairs of activities
         combs = itertools.permutations(groups_expanded.keys(), 2)
         bar = tqdm(list(combs))
-        bar.set_description("Calculating equivalence")
+        bar.set_description("Calculating equivalence for cases")
         # iterate over pairs
         for pair in bar:
             occ_act1 = groups_expanded[pair[0]]
@@ -810,7 +813,7 @@ class LogSkeleton:
         iterations = len(edge_table)
 
         bar = tqdm(total=iterations)
-        bar.set_description("Calculating directly-follows")
+        bar.set_description("Calculating directly- for cases")
         for _, row in edge_table.iterrows():
             df_all_cases[row[case_col]].add((row["SOURCE"], row["TARGET"]))
 
