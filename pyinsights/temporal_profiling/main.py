@@ -1,5 +1,4 @@
-
-from pyinsights.ml.statistics import batches_per_case
+from pyinsights.ml.statistics import workload
 from pyinsights.log_skeleton import LogSkeleton
 from pm4py.algo.conformance.temporal_profile import algorithm as temporal_profile_conformance
 from pm4py.algo.discovery.temporal_profile import algorithm as temporal_profile_discovery
@@ -37,4 +36,4 @@ if __name__ == "__main__":
 
     from pyinsights.ml import anomaly_detection
     print(anomaly_detection(connector=connector).head(n=100).to_string())
-    
+

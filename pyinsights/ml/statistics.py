@@ -55,8 +55,8 @@ def get_features(connector, concurrent_cases=False):
             df, row[timestamp], row[timestamp]+datetime.timedelta(seconds=row["throughput"]), timestamp), axis=1)
 
     # get workload per case
-    workload = workload(connector)
-    df = df.join(workload, on=case_col, how="left")
+    workload_stats = workload(connector)
+    df = df.join(workload_stats, on=case_col, how="left")
 
     df.drop_duplicates(inplace=True)
 
@@ -121,19 +121,21 @@ def count_values_in_range(df, range_min, range_max, timestamp):
 
 
 def workload(connector):
-    """computes the general workload on the start day of the case 
+    """computes the maximum and average workload of resources working on the case
 
     Args:
         connector (pyinsights.Connector): connector
 
     Returns:
-        pandas.Series: number of ativities executed on start day of case
+        pandas.Series: maximum and average workload
     """
     case_col = connector.case_col()
-    profiler = ResourceProfiler(
-        connector, resource_column=connector.resource_column())
-    cases_with_batches = profiler.cases_with_batches(batch_types=False)
-    workload = cases_with_batches[[case_col, "# this HOURS"]].groupby(
-        case_col).sum()
+    res_col = connector.resource_column()
+    profiler = ResourceProfiler(connector)
+    res_profile = profiler.resource_profile()
+    workload = res_profile[[case_col, res_col, "# this HOURS"]].groupby([case_col]).agg(
+        max_workload=('# this HOURS', 'max'),
+        avg_workload=('# this HOURS', 'mean')
+    )
 
     return workload

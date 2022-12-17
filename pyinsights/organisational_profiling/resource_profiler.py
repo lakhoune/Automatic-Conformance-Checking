@@ -151,7 +151,7 @@ class ResourceProfiler:
         query.add(PQLColumn(name=case_col, query=case_query))
         query.add(PQLColumn(name=act_col,
                             query=act_query))
-        query.add(PQLColumn(name="resource", query=res_query))
+        query.add(PQLColumn(name=res_col, query=res_query))
         query.add(PQLColumn(name=timestamp,
                             query=timestamp_query))
         if has_endtime:
@@ -262,7 +262,7 @@ class ResourceProfiler:
         # group by groups
         df["truncated"] = df[timestamp].dt.to_period(
             freq_offset).dt.to_timestamp()
-        grouped = df.groupby(['truncated', act_col, 'resource'])
+        grouped = df.groupby(['truncated', act_col, res_col])
         # get groups as arrays in list
         groups = [group.values for group in grouped.groups.values()]
         # flatten groups to get events
