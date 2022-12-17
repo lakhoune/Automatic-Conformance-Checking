@@ -440,12 +440,34 @@ class LogSkeleton:
         lsk_compare_traces = self.get_log_skeleton_per_case(
             case_id=cases_to_compare)
 
-        #check for each case if relation is subset of lsk
-        
+        # check for each case if relation is subset of lsk
+
         non_conforming = {case for relation in lsk_compare_traces.keys(
-        ) for case in lsk_compare_traces[relation].keys() if not lsk_compare_traces[relation][case].issubset(lsk[relation])}
+        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk)}
 
         return non_conforming
+
+    def _conforms(self, lsk_traces, relation, case, lsk):
+        """checks if relation of trace conforms to lsk
+
+        Args:
+            lsk_traces (_type_): _description_
+            relation (_type_): _description_
+            case (_type_): _description_
+            lsk (_type_): _description_
+
+        Returns:
+            bool: conformity
+        """
+        if relation != "directly_follows":
+            if not lsk_traces[relation][case].issubset(lsk[relation]):
+                print(relation)
+                return False
+        else:
+            if not lsk[relation].issubset(lsk_traces[relation][case]):
+                print(relation)
+                return False
+        return True
 
     def _get_conformance_for_case(self, case_id, relations, noise_threshold):
         """
