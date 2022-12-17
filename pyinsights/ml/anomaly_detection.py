@@ -61,7 +61,7 @@ def anomaly_detection(connector, contamination='auto'):
 
 def pca(X):
     # reduce dimensionalities with pca
-    pca = PCA(n_components=3, n_iter=5, random_state=42)
+    pca = PCA(n_components=5, n_iter=5, random_state=42)
     pca.fit(X)
     X_pca = pca.transform(X)
     # show stats for pca
@@ -77,18 +77,21 @@ def parameter_tuning(random_state, num_cases, clf):
     max_samples = math.floor(num_cases*0.8)
     step_size = math.floor(num_cases*0.1)
     param_grid = {'n_estimators': list(range(100, 800, 50)),
-                  'max_samples': list(range(min_samples, max_samples, step_size)),
+                  'max_samples': ['auto'],
                   'contamination': [0.1, 0.2, 0.3, 0.4, 0.5],
-                  'max_features': [5, 10, 15],
+                  'max_features': [3,4,5],
                   'bootstrap': [True, False],
                   'n_jobs': [5, 10, 20, 30]}
 
-    ch_sc = make_scorer(calinski_harabasz_score)
 
-    grid_dt_estimator = model_selection.GridSearchCV(clf,
+    grid_dt_estimator = model_selection.RandomizedSearchCV(clf,
                                                      param_grid,
-                                                     scoring=ch_sc,
+                                                     scoring=scorer_ch,
                                                      refit=True,
                                                      cv=10,
                                                      return_train_score=False)
     return grid_dt_estimator
+
+def scorer_ch(estimator, X):
+    labels = estimator.fit_predict(X)
+    return calinski_harabasz_score(X, labels)
