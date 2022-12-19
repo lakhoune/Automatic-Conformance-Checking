@@ -550,6 +550,7 @@ class LogSkeleton:
 
         return groups_expanded
 
+    
     def _get_always_before_per_case(self, case_id=None):
         """
         Returns the always before relation per case.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
@@ -603,88 +604,101 @@ class LogSkeleton:
             grouped = merged.groupby(case_col)
             test = grouped.agg({'order_x': 'min',
                                 'order_y': 'min'})
-
-            for index, row in test.iterrows():
-                # handling if both activities are the same
-                if pair[0] == pair[1]:
-                    # if they actually occur more than 1 time in case --> they are in the relation
-                    if len(merged[merged[case_col] == index]) > 1:
-                        ab_all_cases[index].add(pair)
-
-                # else test if the first occurrence of act1 is after the first occurrence of act2
-                # add to relation
-                elif row["order_x"] <= row["order_y"]:
-                    ab_all_cases[index].add(pair)
-
-        return ab_all_cases
+            
+            # handling if both activities are the same
+            if pair[0] == pair[1]:
+                # if they actually occur more than 1 time in case --> they are in the relation
+                indices = np.where(merged[case_col].value_counts() > 1)
+                case_ids_ab = list(merged[case_col].value_counts().iloc[indices[0]].index)
+                
+            else:
+                # get cases where first occurence of act1 is after act2 
+                indices = np.where(test['order_x'] >= test['order_y'])
+                if len(indices[0]) > 0:
+                    case_ids_ab = test.iloc[indices[0], :].index
+                else:
+                    case_ids_ab = []
+            
+            # add pair to dict for cases from before
+            for index in case_ids_ab:
+                ab_all_cases[index].add(pair)
+        return ab_all_cases    
+    
 
     def _get_always_after_per_case(self, case_id=None):
-        """
-        Returns the always before relation per case.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
-        :param noise_threshold: [0,1]
-        :return: set
-        """
-        # Get the always after relation
-        # get for every activity its position in the trace
-        query = PQL()
-        query.add(PQLColumn(name=case_col,
-                            query=f""" "{activity_table}"."{case_col}"  """))
-        query.add(PQLColumn(name=act_col,
-                            query=f""" "{activity_table}"."{act_col}"  """))
-        query.add(PQLColumn(
-            name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
-                                    """))
+            """
+            Returns the always before relation per case.  two activities are related if and only if before any occurrence of the first activity the second activity always occurs.
+            :param noise_threshold: [0,1]
+            :return: set
+            """
+            # Get the always after relation
+            # get for every activity its position in the trace
+            query = PQL()
+            query.add(PQLColumn(name=case_col,
+                                query=f""" "{activity_table}"."{case_col}"  """))
+            query.add(PQLColumn(name=act_col,
+                                query=f""" "{activity_table}"."{act_col}"  """))
+            query.add(PQLColumn(
+                name="order", query=f""" INDEX_ACTIVITY_ORDER( "{activity_table}"."{act_col}")
+                                        """))
 
-        if case_id is not None:
-            query.add(self._get_case_id_filter(case_id))
+            if case_id is not None:
+                query.add(self._get_case_id_filter(case_id))
 
-        df = datamodel.get_data_frame(query)
+            df = datamodel.get_data_frame(query)
 
-        case_ids = df[case_col].unique()
-        aa_all_cases = {case: set() for case in case_ids}
+            case_ids = df[case_col].unique()
+            aa_all_cases = {case: set() for case in case_ids}
 
-        # group by activity
-        grouped = df.groupby(by=[act_col], axis=0)
-        # get groups as dict
-        groups = grouped.groups
-        # currently groups contain only row index, expand with case id and count
-        groups_expanded = {k: df.loc[v, [case_col, "order"]]
-                           for k, v in groups.items()}
+            # group by activity
+            grouped = df.groupby(by=[act_col], axis=0)
+            # get groups as dict
+            groups = grouped.groups
+            # currently groups contain only row index, expand with case id and count
+            groups_expanded = {k: df.loc[v, [case_col, "order"]]
+                            for k, v in groups.items()}
 
-        # get cartesian product of activities (because relation is not symmetrical)
-        combs = itertools.product(groups_expanded.keys(), repeat=2)
+            # get cartesian product of activities (because relation is not symmetrical)
+            combs = itertools.product(groups_expanded.keys(), repeat=2)
 
-        # iterate over pairs
+            # iterate over pairs
 
-        bar = tqdm(list(combs))
-        bar.set_description("Calculating always-after for cases")
-        for pair in bar:
+            bar = tqdm(list(combs))
+            bar.set_description("Calculating always-after for cases")
+            for pair in bar:
 
-            # get positions of both acts in one df
-            merged = groups_expanded[pair[0]].merge(
-                groups_expanded[pair[1]], on=case_col, how='left')
-            # replace nas so they don't mess up the minimum
-            merged.fillna(0, inplace=True)
-            # get the result per column and compute for every case
-            # the lowest position for both activities
-            grouped = merged.groupby(case_col)
-            test = grouped.agg({'order_x': 'max',
-                                'order_y': 'max'})
+                # get positions of both acts in one df
+                merged = groups_expanded[pair[0]].merge(
+                    groups_expanded[pair[1]], on=case_col, how='left')
+                # replace nas so they don't mess up the minimum
+                merged.fillna(0, inplace=True)
+                # get the result per column and compute for every case
+                # the lowest position for both activities
+                grouped = merged.groupby(case_col)
+                test = grouped.agg({'order_x': 'max',
+                                    'order_y': 'max'})
 
-            for index, row in test.iterrows():
-                # handling if both activities are the same
+                 # handling if both activities are the same
                 if pair[0] == pair[1]:
                     # if they actually occur more than 1 time in case --> they are in the relation
-                    if len(merged[merged[case_col] == index]) > 1:
-                        aa_all_cases[index].add(pair)
-
-                # else test if the last occurrence of act1 is after last occurrence of act2
-                # add to relation
-                elif row["order_x"] >= row["order_y"]:
+                    indices = np.where(merged[case_col].value_counts() > 1)
+                    case_ids_aa = list(merged[case_col].value_counts().iloc[indices[0]].index)
+                    
+                else:
+                    # get cases where first occurence of act1 is after act2 
+                    indices = np.where(test['order_x'] >= test['order_y'])
+                    if len(indices[0]) > 0:
+                        case_ids_aa = test.iloc[indices[0], :].index
+                    else:
+                        case_ids_aa = []
+                
+                # add pair to dict for cases from before
+                for index in case_ids_aa:
                     aa_all_cases[index].add(pair)
 
-        return aa_all_cases
-
+            return aa_all_cases
+    
+    
     def _get_never_together_per_case(self, case_id=None):
         """
         Returns the never together relation per case. two activities are related if and only if they do not occur together in any trace.
@@ -731,81 +745,18 @@ class LogSkeleton:
                 min = pair[0]
 
             # larger and smaller profile w.r.t. cases
-            occ_max = groups_expanded[max][case_col]
-            occ_min = groups_expanded[min][case_col]
+            occ_max = set(groups_expanded[max][case_col])
+            occ_min = set(groups_expanded[min][case_col])
+            
             # check if smaller profile and larger profile do not occur together
 
-            for index, row in occ_max.items():
-                if not row in occ_min:
-                    nt_all_cases[row].add(pair)
+            nt_case_ids = occ_max.symmetric_difference(occ_min)
+            for case in nt_case_ids:
+                nt_all_cases[case].add(pair)
         return nt_all_cases
+    
 
     def _get_equivalence_per_case(self, case_id=None):
-        """
-        Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
-        :param noise_threshold: [0,1]
-        :return: set
-        """
-        # Get the number of occurrences of each activity per case
-
-        query = PQL()
-        query.add(PQLColumn(name=case_col,
-                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
-        query.add(PQLColumn(name=act_col,
-                            query=f""" "{activity_table}"."{act_col}"  """))
-        query.add(PQLColumn(
-            name="max nr", query=f"""
-                PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
-                ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
-
-        if case_id is not None:
-            query.add(self._get_case_id_filter(case_id))
-
-        df = datamodel.get_data_frame(query)
-
-        # group by activity
-        grouped = df.groupby(by=[act_col], axis=0)
-        # get groups as dict
-        groups = grouped.groups
-        # currently groups contain only row index, expand with case id and count
-        groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
-                           for k, v in groups.items()}
-
-        case_ids = df[case_col].unique()
-        eq_all_cases = {case: set() for case in case_ids}
-        # get all pairs of activities
-        combs = itertools.permutations(groups_expanded.keys(), 2)
-        bar = tqdm(list(combs))
-        bar.set_description("Calculating equivalence for cases")
-        # iterate over pairs
-        for pair in bar:
-            occ_act1 = groups_expanded[pair[0]]
-            occ_act2 = groups_expanded[pair[1]]
-            # determine activity that occurs more times
-            if len(occ_act1) >= len(occ_act2):
-                max = pair[0]
-                min = pair[1]
-            else:
-                max = pair[1]
-                min = pair[0]
-
-            # get profiles for larger and smaller acts
-            occ_max = groups_expanded[max]
-            occ_min = groups_expanded[min]
-
-            occurrences_max = len(groups_expanded[max])
-
-            # get difference betwwen two profiles
-            differences = occ_max[~occ_max.apply(
-                tuple, 1).isin(occ_min.apply(tuple, 1))]
-
-            for index, row in occ_max.iterrows():
-                if row[case_col] not in differences[case_col]:
-                    eq_all_cases[row[case_col]].add(pair)
-
-        return eq_all_cases
-
-    def _get_equivalence_per_case2(self, case_id=None):
         """
         Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
         :param noise_threshold: [0,1]
