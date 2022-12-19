@@ -65,7 +65,7 @@ class LogSkeleton:
         equivalence, always_after, always_before, never_together, directly_follows \
             = self._get_relations_per_case(case_id=case_id)
 
-        #active_frequs = self._active_freq()
+        # active_frequs = self._active_freq()
 
         log_skeleton = {"equivalence": equivalence, "always_after": always_after, "always_before": always_before, "never_together": never_together,
                         "directly_follows": directly_follows}
@@ -678,7 +678,7 @@ class LogSkeleton:
                     if len(merged[merged[case_col] == index]) > 1:
                         aa_all_cases[index].add(pair)
 
-                # else test if the first occurrence of act1 is after the first occurrence of act2
+                # else test if the last occurrence of act1 is after last occurrence of act2
                 # add to relation
                 elif row["order_x"] >= row["order_y"]:
                     aa_all_cases[index].add(pair)
@@ -800,9 +800,77 @@ class LogSkeleton:
                 tuple, 1).isin(occ_min.apply(tuple, 1))]
 
             for index, row in occ_max.iterrows():
-                if row[case_col] in differences[case_col]:
+                if row[case_col] not in differences[case_col]:
                     eq_all_cases[row[case_col]].add(pair)
 
+        return eq_all_cases
+
+    def _get_equivalence_per_case2(self, case_id=None):
+        """
+        Returns the equivalence relation of the log skeleton. two activities are related if and only if they occur equally often in every trace
+        :param noise_threshold: [0,1]
+        :return: set
+        """
+        # Get the number of occurrences of each activity per case
+
+        query = PQL()
+        query.add(PQLColumn(name=case_col,
+                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="max nr", query=f"""
+                PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
+                ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
+        if case_id is not None:
+            query.add(self._get_case_id_filter(case_id))
+
+        df = datamodel.get_data_frame(query)
+
+        # group by activity
+        grouped = df.groupby(by=[act_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with case id and count
+        groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
+                           for k, v in groups.items()}
+
+        case_ids = df[case_col].unique()
+        eq_all_cases = {case: set() for case in case_ids}
+        # get all pairs of activities
+        combs = itertools.permutations(groups_expanded.keys(), 2)
+        bar = tqdm(list(combs))
+        bar.set_description("Calculating equivalence for cases")
+        # iterate over pairs
+        for pair in bar:
+            occ_act1 = groups_expanded[pair[0]]
+            occ_act2 = groups_expanded[pair[1]]
+            # determine activity that occurs more times
+            if len(occ_act1) >= len(occ_act2):
+                max = pair[0]
+                min = pair[1]
+            else:
+                max = pair[1]
+                min = pair[0]
+
+            # get profiles for larger and smaller acts
+            occ_max = groups_expanded[max]
+            occ_min = groups_expanded[min]
+
+            occurrences_max = len(groups_expanded[max])
+
+            # get difference betwwen two profiles
+            differences = occ_max[~occ_max.apply(
+                tuple, 1).isin(occ_min.apply(tuple, 1))]
+
+            # get all cases where max and min occur equivally often
+            equ_relation = [x for x in occ_max[case_col]
+                            if x not in differences[case_col]]
+            # y.loc[np.in1d(y['name'], names)
+            # add them to relation
+            for case in equ_relation:
+                eq_all_cases[case].add(pair)
         return eq_all_cases
 
     def _get_directly_follows_per_case(self, case_id=None):
@@ -826,7 +894,6 @@ class LogSkeleton:
 
         # number of cases in the log
         case_count = edge_table[case_col].nunique()
-        # threshold above which we consider the relation as a direct follow
 
         case_ids = edge_table[case_col].unique()
 
