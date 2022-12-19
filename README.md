@@ -68,7 +68,7 @@ the batches into types.
                                                 reference_unit="DAY")
 
     # get cases with batches
-    df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY",
+    batches_df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY",
                                          min_batch_size=2, batch_percentage=0.1
                                     , grouped_by_batches=True, batch_types=True)
     batches_df
