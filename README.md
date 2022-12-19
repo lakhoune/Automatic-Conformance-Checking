@@ -1,17 +1,20 @@
-# Automatic-Conformance-Checking
-<<<<<<< HEAD
-Automatic Conformance Checking insights in Celonis. Create a interactive visualization. 
+# Automatic Conformance Checking insights in Celonis
+
+Create a interactive visualization.
 
 ## Install Streamlit
+
 ### Prerequisites
+
 - Python 3.7 - Python 3.10
 - PIP
+
 ## Dependencies
 
 - Install numpy
 - Install pandas
 - Install streamlit
-- Install ploty 
+- Install ploty
 - Install seaborn
 - Other visualization libraries
 
@@ -31,11 +34,15 @@ We aim at a seamless integration with one of the leading process mining tools [C
 - plotly
 
 ## Install
+
 Just do
+
 ```sh
 pip install .
 ```
+
 and pip will take care of the rest!
+
 ## Usage Examples
 
 ### Resource Profiling Example
@@ -149,4 +156,3 @@ Some of the paper we used include:
 
 - [Temporal Conformance Checking at Runtime based on Time-infused Process Models](https://arxiv.org/abs/2008.07262)
 - [Log Skeletons: A Classification Approach to Process Discovery](https://arxiv.org/abs/1806.08247)
-
