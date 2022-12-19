@@ -49,28 +49,13 @@ class SkeletonTester(unittest.TestCase):
 
         skeleton = LogSkeleton(connector)
 
-        equivalence, always_after, always_before, never_together, directly_follows, frequs = skeleton.get_log_skeleton()
+        log_skeleton = skeleton.get_log_skeleton()
 
-        eq_expected = {('examine thoroughly', 'register request'), ('pay compensation', 'examine casually'), ('reject request', 'register request'),
-                       ('decide', 'check ticket'), ('check ticket', 'decide'), ('pay compensation', 'register request')}
-        aa_expected = {('examine thoroughly', 'decide'), ('check ticket', 'decide'), ('register request', 'decide'), ('register request', 'check ticket'),
-                       ('reinitiate request', 'check ticket'), ('examine casually', 'decide'), ('reinitiate request', 'decide')}
-        ab_expected = {('check ticket', 'register request'), ('examine thoroughly', 'register request'), ('pay compensation', 'examine casually'),
-                       ('reject request', 'register request'), ('decide', 'check ticket'), ('pay compensation', 'register request'), ('reject request', 'check ticket'),
-                       ('pay compensation', 'decide'), ('reject request', 'decide'), ('pay compensation', 'check ticket'), ('examine casually', 'register request'),
-                       ('reinitiate request', 'register request'), ('reinitiate request', 'examine casually'), ('reinitiate request', 'check ticket'), ('decide', 'register request'),
-                       ('reinitiate request', 'decide')}
-        nt_expected = {('reject request', 'pay compensation'), ('pay compensation', 'reject request')}
-        df_expected = set()
-        frequs_expected = {'check ticket': {1, 2, 3}, 'decide': {1, 2, 3}, 'examine casually': {0, 1, 3}, 'examine thoroughly': {0, 1},
-                           'pay compensation': {0, 1}, 'register request': {1}, 'reinitiate request': {0, 1, 2}, 'reject request': {0, 1}}
-
-        self.assertTrue(equivalence == eq_expected)
-        self.assertTrue(always_after == aa_expected)
-        self.assertTrue(always_before == ab_expected)
-        self.assertTrue(never_together == nt_expected)
-        self.assertTrue(directly_follows == df_expected)
-        self.assertTrue(frequs == frequs_expected)
+        expected_skeleton = {'equivalence': {('check ticket', 'decide'), ('decide', 'check ticket')}, 'always_after': {('register request', 'check ticket'), ('examine thoroughly', 'decide'), ('register request', 'decide')}, 'always_before': {('pay compensation', 'examine casually'), ('pay compensation', 'register request'), ('reject request', 'check ticket'), ('pay compensation', 'check ticket'), ('examine thoroughly', 'register request'), ('reject request', 'decide'), ('reject request', 'register request'), ('pay compensation', 'decide')}, 'never_together': {('reject request', 'pay compensation'), ('pay compensation', 'reject request')}, 'directly_follows': set(), 'activ_freq': {'check ticket': {1, 2, 3}, 'decide': {1, 2, 3}, 'examine casually': {0, 1, 3}, 'examine thoroughly': {0, 1}, 'pay compensation': {0, 1}, 'register request': {1}, 'reinitiate request': {0, 1, 2}, 'reject request': {0, 1}}}
+        {('pay compensation', 'examine casually'), ('pay compensation', 'register request'), ('reject request', 'register request'), ('examine thoroughly', 'register request')}
+        
+        
+        self.assertTrue(log_skeleton == expected_skeleton)
 
 if __name__ == '__main__':
     unittest.main()
