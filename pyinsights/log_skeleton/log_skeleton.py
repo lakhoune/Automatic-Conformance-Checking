@@ -55,9 +55,9 @@ class LogSkeleton:
 
     def get_log_skeleton_per_case(self, case_id):
         """
-        Returns the log skeleton of .
+        Returns the log skeleton per trace
         :param noise_threshold: [0,1]
-        :return: relations and active frequencies as dict
+        :return: dict of the form case_id : lsk of trace as dict
         """
         log_skeleton = None
         # Get the extended log
@@ -65,10 +65,10 @@ class LogSkeleton:
         equivalence, always_after, always_before, never_together, directly_follows \
             = self._get_relations_per_case(case_id=case_id)
 
-        # active_frequs = self._active_freq()
+        active_frequs = self._active_freq_per_case()
 
         log_skeleton = {"equivalence": equivalence, "always_after": always_after, "always_before": always_before, "never_together": never_together,
-                        "directly_follows": directly_follows}
+                        "directly_follows": directly_follows, "activ_freq": active_frequs}
 
         return log_skeleton
 
@@ -437,7 +437,9 @@ class LogSkeleton:
         num_activities_df = datamodel.get_data_frame(query)
         num_activities = num_activities_df["num"][0]
         
-        noise_threshold_scaled = 0.2 + noise_threshold*0.7
+        # rescale noise threshold because old one is not practically usable
+        # values based on empirical oberservations
+        noise_threshold_scaled = 0.35 + noise_threshold*0.7
         lsk = self.get_log_skeleton(noise_threshold_scaled)
 
         lsk_compare_traces = self.get_log_skeleton_per_case(
@@ -452,7 +454,7 @@ class LogSkeleton:
 
     def _conforms(self, lsk_traces, relation, case, lsk, noise_threshold, num_activities):
         """checks if relation of trace conforms to lsk
-
+            relaxed problem: the difference between the relations can have up to noise-threshold * number of pairs elements, and still conform
         Args:
             lsk_traces (_type_): _description_
             relation (_type_): _description_
@@ -462,8 +464,12 @@ class LogSkeleton:
         Returns:
             bool: conformity
         """
-        
-        if relation not in ['equivalence', 'never_together']:
+        if relation == "activ_freq":
+            for act in lsk[relation].keys():
+                if not lsk_traces[relation][case][act].issubset(lsk[relation][act]):
+                    return False
+            
+        elif relation not in ['equivalence', 'never_together']:
             num_pairs = num_activities**2
             difference = lsk_traces[relation][case].difference(lsk[relation])
             if len(difference) > num_pairs*noise_threshold:
@@ -577,11 +583,13 @@ class LogSkeleton:
         activities = list(df[act_col].unique())
         # group by case
         grouped = df.groupby(by=[case_col], axis=0)
-        # get groups as dict
-        start_dict = {act: {0} for act in activities}
-        all_freqs_per_case = {case: start_dict for case in case_ids}
-        # currently groups contain only row index, expand with activity and count
-        for group_name, df_group in grouped:
+        # init active frquencies as 0 per case per activity
+        all_freqs_per_case = {case: {act: {0} for act in activities} for case in case_ids}
+        
+        # set the frequencies in the dict for every case
+        bar = tqdm(grouped)
+        bar.set_description("Computing active-frequencies per case")
+        for group_name, df_group in bar:
             for index, row in df_group.iterrows():
                 all_freqs_per_case[group_name][row[act_col]] = {row["max nr"]}
             
