@@ -9,15 +9,6 @@ Create a interactive visualization.
 - Python 3.7 - Python 3.10
 - PIP
 
-## Dependencies
-
-- Install numpy
-- Install pandas
-- Install streamlit
-- Install ploty
-- Install seaborn
-- Other visualization libraries
-
 We developed the library **pyinsights** to get automatic conformance checking insights on business processes.
 We aim at a seamless integration with one of the leading process mining tools [Celonis](https://www.celonis.com/).
 
