@@ -2,7 +2,7 @@ from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
 import numpy as np
 import itertools
 from tqdm import tqdm
-
+import math
 
 class LogSkeleton:
     """
@@ -180,8 +180,9 @@ class LogSkeleton:
             occurrences_max = len(groups_expanded[max])
 
             # get difference betwwen two profiles
-            differences = occ_max[~occ_max.apply(
-                tuple, 1).isin(occ_min.apply(tuple, 1))]
+            
+            differences = occ_max.merge(occ_min,indicator = True, how='left').loc[lambda x : x['_merge']!='both']
+
 
             # if the two profiles deviate no more than noise * size of larger profile
             # they are equivalent
@@ -427,13 +428,14 @@ class LogSkeleton:
     def get_conformance(self, noise_threshold=0, cases_to_compare=None):
         """
         Checks for each trace in the log, whether it is fitting or not.
-        :return: pandas.DataFrame with the conformance of each trace ( columns: [caseID, conformance])
+        :return: list of nonconforming cases
         """
-        # get the case ids of the log
+        # get the number of activities in the log
         query = PQL()
         query.add(
-            PQLColumn(name=case_col, query=f""" "{activity_table}"."{case_col}" """))
-        case_ids = datamodel.get_data_frame(query).drop_duplicates()
+            PQLColumn(name="num", query=f""" COUNT(DISTINCT "{activity_table}"."{act_col}") """))
+        num_activities_df = datamodel.get_data_frame(query)
+        num_activities = num_activities_df["num"][0]
 
         lsk = self.get_log_skeleton(noise_threshold)
 
@@ -443,11 +445,11 @@ class LogSkeleton:
         # check for each case if relation is subset of lsk
 
         non_conforming = {case for relation in lsk_compare_traces.keys(
-        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk)}
+        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk, noise_threshold, num_activities)}
 
         return non_conforming
 
-    def _conforms(self, lsk_traces, relation, case, lsk):
+    def _conforms(self, lsk_traces, relation, case, lsk, noise_threshold, num_activities):
         """checks if relation of trace conforms to lsk
 
         Args:
@@ -459,13 +461,16 @@ class LogSkeleton:
         Returns:
             bool: conformity
         """
-        if relation != "directly_follows":
-            if not lsk_traces[relation][case].issubset(lsk[relation]):
-                print(relation)
+        
+        if relation not in ['equivalence', 'never_together']:
+            num_pairs = num_activities**2
+            difference = lsk_traces[relation][case].difference(lsk[relation])
+            if len(difference) > num_pairs*noise_threshold:
                 return False
         else:
-            if not lsk[relation].issubset(lsk_traces[relation][case]):
-                print(relation)
+            num_pairs = math.factorial(num_activities) / math.factorial(num_activities-2)
+            difference = lsk_traces[relation][case].difference(lsk[relation])
+            if len(difference) > num_pairs*noise_threshold:
                 return False
         return True
 
@@ -550,6 +555,41 @@ class LogSkeleton:
 
         return groups_expanded
 
+    def _active_freq_per_case(self):
+        """ TODO
+        returns for each activity, the number of possible occurrences per trace
+        :return:
+        """
+        query = PQL()
+        query.add(PQLColumn(name=case_col,
+                            query=f"""DISTINCT "{activity_table}"."{case_col}"  """))
+        query.add(PQLColumn(name=act_col,
+                            query=f""" "{activity_table}"."{act_col}"  """))
+        query.add(PQLColumn(
+            name="max nr", query=f"""
+                        PU_MAX( DOMAIN_TABLE("{activity_table}"."{case_col}", "{activity_table}"."{act_col}"),
+                        ACTIVATION_COUNT ( "{activity_table}"."{act_col}" ) ) """))
+
+        df = datamodel.get_data_frame(query)
+
+        case_ids = list(df[case_col].unique())
+        activities = list(df[act_col].unique())
+        # group by case
+        grouped = df.groupby(by=[case_col], axis=0)
+        # get groups as dict
+        groups = grouped.groups
+        # currently groups contain only row index, expand with activity and count
+        groups_expanded = {k: df.loc[v, [act_col, "max nr"]]
+                           for k, v in groups.items()}
+
+        bar = tqdm(groups_expanded.items())
+        bar.set_description("Computing active frequencies")
+        for act, occ in bar:
+            groups_expanded[act] = set(groups_expanded[act]["max nr"])
+            if not (case_ids == list(occ[case_col].unique())):
+                groups_expanded[act].add(0)
+
+        return groups_expanded
     
     def _get_always_before_per_case(self, case_id=None):
         """
@@ -724,7 +764,7 @@ class LogSkeleton:
         # currently groups contain only row index, expand with case id and count
         groups_expanded = {k: df.loc[v, [case_col, "max nr"]]
                            for k, v in groups.items()}
-        print(groups_expanded)
+        
         # get all pairs of activities
         combs = itertools.permutations(groups_expanded.keys(), 2)
 
@@ -812,8 +852,7 @@ class LogSkeleton:
             occurrences_max = len(groups_expanded[max])
 
             # get difference betwwen two profiles
-            differences = occ_max[~occ_max.apply(
-                tuple, 1).isin(occ_min.apply(tuple, 1))]
+            differences = occ_max.merge(occ_min,indicator = True, how='left').loc[lambda x : x['_merge']!='both']
 
             # get all cases where max and min occur equivally often
             equ_relation = [x for x in occ_max[case_col]
