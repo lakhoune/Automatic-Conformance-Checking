@@ -436,8 +436,9 @@ class LogSkeleton:
             PQLColumn(name="num", query=f""" COUNT(DISTINCT "{activity_table}"."{act_col}") """))
         num_activities_df = datamodel.get_data_frame(query)
         num_activities = num_activities_df["num"][0]
-
-        lsk = self.get_log_skeleton(noise_threshold)
+        
+        noise_threshold_scaled = 0.2 + noise_threshold*0.7
+        lsk = self.get_log_skeleton(noise_threshold_scaled)
 
         lsk_compare_traces = self.get_log_skeleton_per_case(
             case_id=cases_to_compare)
@@ -445,7 +446,7 @@ class LogSkeleton:
         # check for each case if relation is subset of lsk
 
         non_conforming = {case for relation in lsk_compare_traces.keys(
-        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk, noise_threshold, num_activities)}
+        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk, noise_threshold_scaled, num_activities)}
 
         return non_conforming
 
@@ -556,7 +557,7 @@ class LogSkeleton:
         return groups_expanded
 
     def _active_freq_per_case(self):
-        """ TODO
+        """
         returns for each activity, the number of possible occurrences per trace
         :return:
         """
@@ -577,19 +578,15 @@ class LogSkeleton:
         # group by case
         grouped = df.groupby(by=[case_col], axis=0)
         # get groups as dict
-        groups = grouped.groups
+        start_dict = {act: {0} for act in activities}
+        all_freqs_per_case = {case: start_dict for case in case_ids}
         # currently groups contain only row index, expand with activity and count
-        groups_expanded = {k: df.loc[v, [act_col, "max nr"]]
-                           for k, v in groups.items()}
+        for group_name, df_group in grouped:
+            for index, row in df_group.iterrows():
+                all_freqs_per_case[group_name][row[act_col]] = {row["max nr"]}
+            
 
-        bar = tqdm(groups_expanded.items())
-        bar.set_description("Computing active frequencies")
-        for act, occ in bar:
-            groups_expanded[act] = set(groups_expanded[act]["max nr"])
-            if not (case_ids == list(occ[case_col].unique())):
-                groups_expanded[act].add(0)
-
-        return groups_expanded
+        return all_freqs_per_case
     
     def _get_always_before_per_case(self, case_id=None):
         """
