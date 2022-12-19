@@ -11,7 +11,8 @@ from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.conformance import alignment_scores
 from pm4py.algo.discovery.temporal_profile import algorithm as temporal_profile_discovery
 from pm4py.algo.conformance.temporal_profile import algorithm as temporal_profile_conformance
-from pyinsights.combiner import Combiner
+from pyinsights.log_skeleton import LogSkeleton
+
 if __name__ == "__main__":
 
 
@@ -52,3 +53,5 @@ if __name__ == "__main__":
 
 
 
+    print(eq)
+    print(connector.events())

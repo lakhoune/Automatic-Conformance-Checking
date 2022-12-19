@@ -21,3 +21,5 @@ if __name__ == "__main__":
     # id = input()
     # connector.set_parameters(model_id=id)
 
+    log_skeleton = LogSkeleton(connector=connector)
+    log_skeleton.get_conformance(noise_threshold=0)

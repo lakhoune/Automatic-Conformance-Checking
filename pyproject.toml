@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "automatic-conformance-checking"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "pyinsights"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "^1.23.5"
+docutils = "^0.19"
+streamlit = "^1.15.2"
+pycelonis = "1.7.3"
+seaborn = "^0.12.1"
+pandas = "^1.5.2"
+scipy = "^1.9.3"
+pm4py = "^2.3.2"
+scikit-learn = "^1.2"
+prince = "^0.7.1"
+
+
+[[tool.poetry.source]]
+name = "pycelonis"
+url = "https://pypi.celonis.cloud/"
+default = false
+secondary = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
