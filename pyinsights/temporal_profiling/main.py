@@ -1,7 +1,4 @@
 
-import sys
-sys.path.append("C:/Users/infer/PycharmProjects/Automatic-Conformance-Checking/")
-
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -16,14 +13,13 @@ from pm4py.algo.discovery.temporal_profile import algorithm as temporal_profile_
 from pm4py.algo.conformance.temporal_profile import algorithm as temporal_profile_conformance
 from pyinsights.log_skeleton import LogSkeleton
 if __name__ == "__main__":
+
     celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
     api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
-    from pyinsights import Connector
-    from pyinsights.organisational_profiling import ResourceProfiler
-
     # define connector and connect to celonis
-    connector = Connector(api_token=api_token, url=celonis_url, key_type="USER_KEY")
+    connector = Connector(api_token=api_token,
+                          url=celonis_url, key_type="USER_KEY")
 
     # choose data model
     print("Available datamodels:")

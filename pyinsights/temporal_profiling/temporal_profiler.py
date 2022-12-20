@@ -183,6 +183,7 @@ class TemporalProfiler:
             name=case_col, query=f""" SOURCE("{activity_table}"."{case_col}", {transition_mode} WITH START())  """))
         query.add(PQLColumn(name="source", query=source_act))
         query.add(PQLColumn(name="target", query=target_act))
+        query.add(PQLColumn(name=timestamp, query = f""" SOURCE("{activity_table}"."{timestamp}") """))
         query.add(PQLColumn(name="waiting time", query=waiting))
 
         # compute average waiting time
@@ -300,7 +301,7 @@ class TemporalProfiler:
 
         # final view ( extended or basic)
         if not extended_view:
-            cols = [case_col, "source", "target"]
+            cols = [case_col, "source", "target", timestamp]
         if deviation_cost:
             cols.append("deviation cost")
 

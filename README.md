@@ -17,13 +17,17 @@ We aim at a seamless integration with one of the leading process mining tools [C
 
 ## Install
 
+
 Just do
+
 
 ```sh
 pip install .
 ```
 
+
 and pip will take care of the rest!
+
 
 ## Usage Examples
 
@@ -49,7 +53,8 @@ the batches into types.
     print(connector.celonis.datamodels)
     print("Input id of datamodel:")
     id = input()
-    connector.set_parameters(model_id=id, end_timestamp="END_DATE")
+    connector.set_parameters(model_id=id, end_timestamp="END_DATE",
+                            resource_column="CE_UO)
 
     # init resource profiler
     res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")
@@ -59,7 +64,7 @@ the batches into types.
                                                 reference_unit="DAY")
 
     # get cases with batches
-    df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY",
+    batches_df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY",
                                          min_batch_size=2, batch_percentage=0.1
                                     , grouped_by_batches=True, batch_types=True)
     batches_df
@@ -127,7 +132,8 @@ from pyinsights.log_skeleton import LogSkeleton
 
 skeleton = LogSkeleton(connector)
 
-equivalence, always_after, always_before, never_together, directly_follows, active_frequs = skeleton.get_log_skeleton(noise_threshold=0)
+# get lsk as pm4py-conforming dict
+lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)
 ```
 
 ### Anomaly Detection Example
