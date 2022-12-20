@@ -430,7 +430,7 @@ class LogSkeleton:
     def get_conformance(self, noise_threshold=0, cases_to_compare=None):
         """
         Checks for each trace in the log, whether it is fitting or not.
-        :return: list of nonconforming cases
+        :return: dataframe with ids of non-conforming cases
         """
         # get the number of activities in the log
         query = PQL()
