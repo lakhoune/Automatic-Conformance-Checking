@@ -253,8 +253,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                     else:
                         st.error("Please select a valid resource column!")
                 if "Log Skeleton" in method_option:
-                    df = lsk_deviations(
-                        noise_treshold=noise_treshold, url=model_option.url)
+                    df = lsk_deviations(noise_treshold, url=model_option.url)
                     deviations.append(df)
                 if "Anomaly Detection" in method_option:
 
@@ -272,7 +271,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                     df = _combine_deviations(
                         combiner, deviations, how=combine_method, url=model_option.url)
 
-                st.write(f"{df.shape[0]} deviations found")
+                st.write(f"{len(df)} deviations found")
                 if method_option == ["Temporal Profiling"]:
                     quantile = np.quantile(df["deviation cost"], q=0.75)
                     st.dataframe(df.style.applymap(color_cost,
