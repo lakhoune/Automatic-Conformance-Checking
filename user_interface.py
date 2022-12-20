@@ -1,5 +1,6 @@
 import streamlit as st
-
+import numpy as np
+import pandas as pd
 from pyinsights import Connector
 from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.organisational_profiling import ResourceProfiler
@@ -34,6 +35,9 @@ def name_of_col(model):
     else:
         return f"""{model["name"]}, {model["type"]}"""
 
+def color_survived(val, quantile):
+    color = 'gray' if val < quantile else 'red'
+    return f'background-color: {color}'
 
 @st.experimental_memo
 def set_datamodel(_model, endtime, resource_co, url):
@@ -106,9 +110,8 @@ if "connector" not in st.session_state:
 
 
 elif "connector" in st.session_state:
-    st.caption("""Select a datamodel and the necessary columns on the right.
-Select your choices with the button below them. Then, select your prefered methods and set the necessary parameters.
-After that, you can just click on 'Get deviations'!""")
+    st.info("""Select a datamodel and the necessary columns on the right. Then, select your prefered methods and set the necessary parameters.
+After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
 
     col1, col2, _, col4 = st.columns(4)
 
@@ -127,21 +130,19 @@ After that, you can just click on 'Get deviations'!""")
             st.error("Not enough permissions to get models. Change key type!")
 
         else:
-            with st.form("model"):
-                columns = columns(model_option, model_option.url)
-                end_timestamp = st.selectbox(
+            
+            columns = columns(model_option, model_option.url)
+            end_timestamp = st.selectbox(
                     "Input end-timestamp column", columns["endtime"], format_func=name_of_col)
-                resource_col = st.selectbox(
+            resource_col = st.selectbox(
                     "Input resource column", columns["resource"], format_func=name_of_col)
-                model_submitted = st.form_submit_button("Select Model")
-
-            # if model_submitted:
-                # set_datamodel(model_option, end_timestamp,
-                #               resource_col, model_option.url)
+               
 
             method_option = st.multiselect(
                 "Choose methods", ("Temporal Profiling", "Resource Profiling", "Log Skeleton", "Anomaly Detection"))
 
+            if len(method_option) > 1:
+                combine_method = st.selectbox(label="Combination method", options=["union", "intersection"])
             st.subheader("Parameters")
             tab1, tab2, tab3, tab4 = st.tabs(
                 ["Temporal Profile", "Resource Profile", "Log Skeleton", "Anomaly Detection"])
@@ -170,10 +171,12 @@ After that, you can just click on 'Get deviations'!""")
                     batch_types = st.selectbox("Batch types", [True, False])
             with tab3:
                 noise_treshold = st.number_input(
-                    label="Noise-threshold", value=0.0, step=0.1)
+                    label="Noise-threshold", value=0.2, step=0.1)
             with tab4:
-                contamination = st.number_input(
-                    label="Contamination", value=0.2, step=0.1)
+                param_opti = st.checkbox(label="Hyperparameter Optimization", value=True)
+                if not param_opti:
+                    contamination = st.number_input(
+                        label="Contamination", value=0.2, step=0.1)
     if run:
         if st.session_state.connector.end_time == "":
             st.session_state.connector.end_time = None
@@ -206,8 +209,9 @@ After that, you can just click on 'Get deviations'!""")
 
             if success:
                 st.write(f"{df.shape[0]} deviations found")
-                st.dataframe(df)
-
+                quantile = np.quantile(df["deviation cost"], q=0.75)
+                st.dataframe(df.style.applymap(color_survived, quantile=quantile, subset=['deviation cost']))
+                st.bar_chart(pd.cut(df["deviation cost"],3, labels=["small", "medium", "big"]).value_counts())
                 csv = convert_df(df)
                 st.download_button(
                     label="Download data as CSV",
