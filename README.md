@@ -15,6 +15,7 @@ We aim at a seamless integration with one of the leading process mining tools [C
 ## Install
 Just do
 ```sh
+pip install --extra-index-url=https://pypi.celonis.cloud/ pycelonis=="1.7.3"
 pip install .
 ```
 and pip will take care of the rest!
