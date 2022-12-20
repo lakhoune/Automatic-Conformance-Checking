@@ -6,4 +6,4 @@ COPY . .
 
 RUN pip install --extra-index-url=https://pypi.celonis.cloud/ .
 
-# CMD [ "python", "./pyinsights/log_skeleton/main.py" ]
+CMD [ "bash" ]
