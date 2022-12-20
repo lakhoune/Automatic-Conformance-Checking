@@ -1,0 +1,33 @@
+api-version: 2019-12-01
+location: westeurope
+name: automatic-conformance-checking
+properties:
+  containers:
+    - name: streamlitapp
+      properties:
+        image: pyinsightscr.azurecr.io/streamlit
+        ports:
+          - port: 80
+            protocol: TCP
+          - port: 443
+            protocol: TCP
+        resources:
+          requests:
+            cpu: 4.0
+            memoryInGB: 4
+  imageRegistryCredentials:
+    - server: pyinsightscr.azurecr.io
+      username: pyinsightscr
+      password: IHtegWShmfYJ5cj8UTiuctk2YYJnOxL3MfZXvUS7Na+ACRAtQxsY
+  restartPolicy: Never
+  ipAddress:
+    ports:
+      - port: 443
+        protocol: TCP
+      - port: 80
+        protocol: TCP
+    type: Public
+    dnsNameLabel: pyinsights
+  osType: Linux
+tags: null
+type: Microsoft.ContainerInstance/containerGroups

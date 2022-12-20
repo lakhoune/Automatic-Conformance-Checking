@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "pyinsights"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 numpy = "^1.23.5"
 docutils = "^0.19"
 streamlit = "^1.15.2"
@@ -18,7 +18,8 @@ scipy = "^1.9.3"
 pm4py = "^2.3.2"
 scikit-learn = "^1.2"
 prince = "^0.7.1"
-
+tqdm = "^4.61.1"
+streamlit-aggrid = "^0.2.3"
 
 [[tool.poetry.source]]
 name = "pycelonis"

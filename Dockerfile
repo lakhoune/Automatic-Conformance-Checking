@@ -1,9 +1,30 @@
-FROM --platform=amd64 python:3.9.16-bullseye
-
+FROM mambaorg/micromamba:0.15.3
+USER root
+RUN apt-get update && DEBIAN_FRONTEND=“noninteractive” apt-get install -y --no-install-recommends \
+       nginx \
+       python \
+       pip \
+       ca-certificates \
+       apache2-utils \
+       certbot \
+       python3-certbot-nginx \
+       sudo \
+       cifs-utils \
+       && \
+    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get -y install cron
+RUN mkdir /usr/src/app
+RUN chmod -R 777 /usr/src/app
 WORKDIR /usr/src/app
 
 COPY . .
 
 RUN pip install --extra-index-url=https://pypi.celonis.cloud/ .
 
-# CMD [ "python", "./pyinsights/log_skeleton/main.py" ]
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
+USER root
+RUN chmod a+x run.sh
+CMD ["./run.sh"]
+
