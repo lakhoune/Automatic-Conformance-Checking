@@ -30,7 +30,6 @@ def segregation_of_duties(connector, resource_column, activities):
     case_id = f"""SOURCE("{connector.activity_table()}"."{connector.case_col()}") """
     resource = f"""SOURCE("{connector.activity_table()}"."{resource_column}") """
     timestamp = f"""SOURCE("{connector.activity_table()}"."{connector.timestamp()}") """
-    same_activity_filter = f""" FILTER SOURCE("{connector.activity_table()}"."{resource_column}") = TARGET("{connector.activity_table()}"."{resource_column}")   """
 
     query = PQL()
     query += PQLColumn(name=connector.case_col(), query=case_id)
