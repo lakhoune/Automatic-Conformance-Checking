@@ -151,7 +151,7 @@ if "connector" not in st.session_state:
 
 
 elif "connector" in st.session_state:
-    st.info("""Select a datamodel and the necessary columns on the right. Then, select your prefered methods and set the necessary parameters.
+    st.info("""Select a datamodel and the necessary columns on the left sidebar. Then, select your prefered methods and set the necessary parameters.
 After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
 
     col1, col2, _, col4 = st.columns(4)
@@ -216,6 +216,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             with tab4:
                 param_opti = st.checkbox(
                     label="Hyperparameter Optimization", value=True)
+                contamination = "auto"
                 if not param_opti:
                     contamination = st.number_input(
                         label="Contamination", value=0.2, step=0.1)
@@ -224,7 +225,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             st.session_state.connector.end_time = None
         else:
             st.session_state.end_time = end_timestamp
-        st.session_state.connector.resource_col = resource_col
+        st.session_state.connector.resource_col = resource_col["name"]
         print(st.session_state.connector.resource_column())
         st.session_state.connector.datamodel = model_option
         if len(method_option) == 0:
@@ -256,9 +257,10 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                         noise_treshold=noise_treshold, url=model_option.url)
                     deviations.append(df)
                 if "Anomaly Detection" in method_option:
+
                     df = anomaly_deviations(contamination=contamination, param_optimization=param_opti, url=model_option.url,
                                             endtime=end_timestamp["name"], resource_col=resource_col["name"])
-
+                    deviations.append(df)
                 if len(deviations) == len(method_option):
                     success = True
                 else:
