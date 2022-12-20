@@ -1,6 +1,6 @@
 import pandas as pd
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn, PQLFilter
-from pyinsights.conformance import alignment_scores
+from pyinsights.conformance import tbr_scores
 
 
 class TemporalProfiler:
@@ -60,7 +60,6 @@ class TemporalProfiler:
         waiting_times = pd.DataFrame()
         sojourn_times = pd.DataFrame()
 
-
         # queries for waiting time
         source_act = f"""SOURCE("{activity_table}"."{act_col}",{transition_mode})"""
 
@@ -84,7 +83,6 @@ class TemporalProfiler:
 
         query = PQL()
 
-
         query.add(PQLColumn(name="source", query=source_act))
         query.add(PQLColumn(name="target", query=target_act))
 
@@ -99,7 +97,8 @@ class TemporalProfiler:
         # get dataframe
         waiting_times = datamodel.get_data_frame(query)
         # pql returns profile for every occurrence of activity
-        waiting_times.drop_duplicates(subset=["source", "target"], inplace=True)
+        waiting_times.drop_duplicates(
+            subset=["source", "target"], inplace=True)
 
         if has_endtime:
             # queries for sojourn
@@ -110,13 +109,15 @@ class TemporalProfiler:
             avg_sojourn = f"""   PU_AVG ( DOMAIN_TABLE ("{activity_table}"."{act_col}"),{sojourn}) """
 
             sojourn_query = PQL()
-            sojourn_query.add(PQLColumn(name=act_col, query=f""""{activity_table}"."{act_col}" """))
+            sojourn_query.add(
+                PQLColumn(name=act_col, query=f""""{activity_table}"."{act_col}" """))
 
             # compute average sojourn time
             # needs pull-up and domain table because of celonis joins
             # compute average sojourn time
             # needs pull-up and domain table because of celonis joins
-            sojourn_query.add(PQLColumn(name="avg sojourn time", query=avg_sojourn))
+            sojourn_query.add(
+                PQLColumn(name="avg sojourn time", query=avg_sojourn))
 
             # compute standard sojourn of waiting time
             # needs pull-up and domain table because of celonis joins
@@ -127,7 +128,8 @@ class TemporalProfiler:
             sojourn_times.drop_duplicates(subset=[act_col], inplace=True)
 
         # resulting temporal profile
-        temporal_profile = {'waiting times': waiting_times, 'sojourn times': sojourn_times}
+        temporal_profile = {'waiting times': waiting_times,
+                            'sojourn times': sojourn_times}
 
         return temporal_profile
 
@@ -169,7 +171,6 @@ class TemporalProfiler:
                     TARGET("{activity_table}"."{timestamp}" , WITH END())) )
                     """
 
-
         query = PQL()
 
         # only end transitions are needed for sojourn time
@@ -178,7 +179,8 @@ class TemporalProfiler:
 
         query.add(PQLFilter(filter_start))
 
-        query.add(PQLColumn(name=case_col, query=f""" SOURCE("{activity_table}"."{case_col}", {transition_mode} WITH START())  """))
+        query.add(PQLColumn(
+            name=case_col, query=f""" SOURCE("{activity_table}"."{case_col}", {transition_mode} WITH START())  """))
         query.add(PQLColumn(name="source", query=source_act))
         query.add(PQLColumn(name="target", query=target_act))
         query.add(PQLColumn(name="waiting time", query=waiting))
@@ -222,7 +224,6 @@ class TemporalProfiler:
             avg_sojourn = f"""   PU_AVG ( DOMAIN_TABLE (SOURCE("{activity_table}"."{act_col}")),{sojourn})
                                     """
 
-
             query.add(PQLColumn(name="sojourn", query=sojourn))
 
             # compute average sojourn time
@@ -232,8 +233,6 @@ class TemporalProfiler:
             # compute standard sojourn of waiting time
             # needs pull-up and domain table because of celonis joins
             query.add(PQLColumn(name="std sojourn", query=std_sojourn))
-
-
 
             # compute z-score of sojourn
             query.add(PQLColumn(name="z-score (sojourn)", query=f"""
@@ -278,22 +277,26 @@ class TemporalProfiler:
 
         # load event log and filter to deviating cases
         event_log = self.connector.events()
-        events_to_align = event_log[event_log[case_col].isin(case_ids)]
+        events_to_replay = event_log[event_log[case_col].isin(case_ids)]
 
         # compute deviation cost
         if deviation_cost:
-            # compute alignment cost
-            alignment_cost = alignment_scores(events_to_align=events_to_align, event_log=event_log, connector=self.connector)
-            deviating_cases = pd.DataFrame({f'{case_col}': case_ids, "alignment cost": alignment_cost})
-            # append alignment cost to deviations df
-            deviations = deviations.merge(deviating_cases.set_index(case_col), on=case_col, how="left")
+            # compute cost
+            cost = tbr_scores(events_to_replay=events_to_replay,
+                              event_log=event_log, connector=self.connector)
+            deviating_cases = pd.DataFrame(
+                {f'{case_col}': case_ids, "cost": cost})
+            # append cost to deviations df
+            deviations = deviations.merge(
+                deviating_cases.set_index(case_col), on=case_col, how="left")
 
             # factor sojourn time into deviation cost if applicable
             if has_endtime:
                 deviations["deviation cost"] = deviations["z-score (waiting time)"] + deviations["z-score (sojourn)"]\
-                                               + deviations["alignment cost"]
+                    + deviations["cost"]
             else:
-                deviations["deviation cost"] = deviations["z-score (waiting time)"] + deviations["alignment cost"]
+                deviations["deviation cost"] = deviations["z-score (waiting time)"] + \
+                    deviations["cost"]
 
         # final view ( extended or basic)
         if not extended_view:

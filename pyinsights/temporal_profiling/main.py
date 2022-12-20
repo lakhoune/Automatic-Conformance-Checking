@@ -31,6 +31,7 @@ if __name__ == "__main__":
     print("Input id of datamodel:")
     id = "376145f1-790d-4deb-8e20-083a4dfd7ca7"
 
+
     connector.set_parameters(
         model_id=id, end_timestamp="END_DATE", resource_column="CE_UO")
 

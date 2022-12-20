@@ -5,39 +5,19 @@ We aim at a seamless integration with one of the leading process mining tools [C
 
 ## Dependencies
 
-- numpy
-- pandas
-- pycelonis == 1.7.3
-- pm4py == 2.2.23
-- sklearn
+- pm4py
+- streamlit
+- scikit-learn
 - prince
+- seaborn
+- plotly
 
 ## Install
-
-- Install pycelonis
-
-  ```sh
-  pip install --extra-index-url=https://pypi.celonis.cloud/ pycelonis=="1.7.3"
-  ```
-
-- Install dotenv
-
-  ```sh
-  pip install python-dotenv
-  ```
-
-## `pyinsights is not a module`
-
-This means you need to `/path/to/pyinsights-folder` to `PYTHONPATH` environment variable
-
-## `packaging is not a module`
-
-Pycelonis relies on this package but does not seem to install it, so we install it manually
-
+Just do
 ```sh
-pip install packaging
+pip install .
 ```
-
+and pip will take care of the rest!
 ## Usage Examples
 
 ### Resource Profiling Example
@@ -73,7 +53,7 @@ the batches into types.
                                                 reference_unit="DAY")
 
     # get cases with batches
-    df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY",
+    batches_df = res_profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY",
                                          min_batch_size=2, batch_percentage=0.1
                                     , grouped_by_batches=True, batch_types=True)
     batches_df
@@ -87,7 +67,9 @@ You can also identify cases violating the four-eyes principle.
 
 ```python
     from pyinsights.organisational_profiling import segregation_of_duties
-    segregation_of_duties(connector=connector)
+
+    activities = ['Pending Liquidation Request', 'Request completed with account closure']
+    segregation_of_duties(connector=connector, resource_column="CE_UO", activities)
 ```
 
 <p align="center">
@@ -139,9 +121,9 @@ from pyinsights.log_skeleton import LogSkeleton
 
 skeleton = LogSkeleton(connector)
 
-equivalence, always_after, always_before, never_together, directly_follows, active_frequs = skeleton.get_log_skeleton(noise_threshold=0)
+# get lsk as pm4py-conforming dict
+lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)```
 ```
-
 ### Anomaly Detection Example
 
 Pyinsights can identify anomalous cases based on IsolationForests.
