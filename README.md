@@ -14,9 +14,6 @@ We aim at a seamless integration with one of the leading process mining tools [C
 
 ## Dependencies
 
-- numpy
-- pandas
-- pycelonis == 1.7.3
 - pm4py
 - streamlit
 - scikit-learn
@@ -29,7 +26,7 @@ We aim at a seamless integration with one of the leading process mining tools [C
 Just do
 
 ```sh
-pip install .
+pip install --extra-index-url=https://pypi.celonis.cloud/ .
 ```
 
 and pip will take care of the rest!
@@ -62,7 +59,7 @@ the batches into types.
                             resource_column="CE_UO)
 
     # init resource profiler
-    res_profiler = ResourceProfiler(connector=connector, resource_column="CE_UO")
+    res_profiler = ResourceProfiler(connector=connector)
 
     # compute resource profile (not needed for next step)
     res_profile = res_profiler.resource_profile(time_unit="HOURS",
@@ -138,8 +135,22 @@ from pyinsights.log_skeleton import LogSkeleton
 skeleton = LogSkeleton(connector)
 
 # get lsk as pm4py-conforming dict
-lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)
+lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)```
 ```
+### Anomaly Detection Example
+
+Pyinsights can identify anomalous cases based on IsolationForests.
+
+```python
+from pyinsights.ml import anomaly_detection
+
+connector.set_parameters(model_id=id, end_timestamp="END_DATE")
+anomaly_detection(connector=connector)
+```
+
+<p align="center">
+  <img width="" src="docs/images/anomaly_ex.PNG" />
+</p>
 
 ## Citations
 
