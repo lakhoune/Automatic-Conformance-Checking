@@ -26,11 +26,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         self.api_token = api_token
         self.url = url
         self.key_type = key_type
+        self.resource_col = None
 
         global end_time
-        global resource_col
         end_time = None
-        resource_col = None
 
         try:
             self.celonis = get_celonis(
@@ -124,7 +123,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             self.end_time = end_timestamp
 
         if resource_column is not None:
-            resource_col = resource_column
+            self.resource_col = resource_column
 
     def has_end_timestamp(self):
         """
@@ -137,10 +136,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         """returns true if datamodel has resource column
         """
 
-        return resource_col is not None
+        return self.resource_col is not None
 
     def resource_column(self):
-        return resource_col
+        return self.resource_col
 
     def events(self):
         """

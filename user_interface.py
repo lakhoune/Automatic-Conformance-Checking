@@ -91,7 +91,7 @@ def anomaly_deviations(contamination, param_optimization, url, endtime, resource
 
 
 @st.experimental_memo(show_spinner=True)
-def _combine_deviations(combiner, deviations, how, url):
+def _combine_deviations(_combiner, deviations, how, url):
 
     df = combiner.combine_deviations(deviations=deviations, how=how)
     return df
@@ -99,7 +99,9 @@ def _combine_deviations(combiner, deviations, how, url):
 
 @st.experimental_memo(show_spinner=True)
 def resource_deviations(endtime, resource_col, time_unit, reference_unit, min_batch_size, batch_percentage, grouped_by_batches, batch_types, url):
-    if st.session_state.connctor.has_resource_column():
+    st.session_state.connector.resource_col = resource_col
+
+    if st.session_state.connector.resource_col != None:
         profiler = ResourceProfiler(
             connector=st.session_state.connector)
     else:
@@ -265,7 +267,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             if success:
                 if len(method_option) > 1:
                     combiner = Combiner(connector=st.session_state.connector)
-                    df = combiner._combine_deviations(
+                    df = _combine_deviations(
                         combiner, deviations, how=combine_method, url=model_option.url)
 
                 st.write(f"{df.shape[0]} deviations found")
