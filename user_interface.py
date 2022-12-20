@@ -4,8 +4,9 @@ import pandas as pd
 from pyinsights import Connector
 from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.organisational_profiling import ResourceProfiler
-
-
+from pyinsights.log_skeleton import LogSkeleton
+from pyinsights.ml import anomaly_detection
+from pyinsights import Combiner
 celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
 token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
@@ -35,9 +36,15 @@ def name_of_col(model):
     else:
         return f"""{model["name"]}, {model["type"]}"""
 
-def color_survived(val, quantile):
+
+def name_of_model(model):
+    return model._data["name"]
+
+
+def color_cost(val, quantile):
     color = 'gray' if val < quantile else 'red'
     return f'background-color: {color}'
+
 
 @st.experimental_memo
 def set_datamodel(_model, endtime, resource_co, url):
@@ -49,7 +56,7 @@ def set_datamodel(_model, endtime, resource_co, url):
     st.session_state.resource_col = resource_col["name"]
 
 
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=True)
 def temporal_deviations(endtime, resource_col, simga, deviation_cost, extended_view, url):
     profiler = TemporalProfiler(connector=st.session_state.connector)
     df = profiler.deviating_cases(
@@ -58,11 +65,43 @@ def temporal_deviations(endtime, resource_col, simga, deviation_cost, extended_v
     return df
 
 
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=True)
+def lsk_deviations(noise_threshold, url):
+    lsk = LogSkeleton(connector=st.session_state.connector)
+
+    df = lsk.get_conformance(noise_threshold=noise_threshold)
+
+    return df
+
+
+@st.experimental_memo(show_spinner=True)
+def anomaly_deviations(contamination, param_optimization, url, endtime, resource_col):
+
+    df = anomaly_detection(st.session_state.connector)
+
+    return df
+
+
+@st.experimental_memo(show_spinner=True)
+def anomaly_deviations(contamination, param_optimization, url, endtime, resource_col):
+
+    df = anomaly_detection(st.session_state.connector)
+
+    return df
+
+
+@st.experimental_memo(show_spinner=True)
+def _combine_deviations(combiner, deviations, how, url):
+
+    df = combiner.combine_deviations(deviations=deviations, how=how)
+    return df
+
+
+@st.experimental_memo(show_spinner=True)
 def resource_deviations(endtime, resource_col, time_unit, reference_unit, min_batch_size, batch_percentage, grouped_by_batches, batch_types, url):
-    if "resource_col" in st.session_state:
+    if st.session_state.connctor.has_resource_column():
         profiler = ResourceProfiler(
-            connector=st.session_state.connector, resource_column=st.session_state.resource_col)
+            connector=st.session_state.connector)
     else:
         st.error("Not all parameters set")
         return
@@ -124,25 +163,25 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
         st.subheader("Config")
         models = st.session_state.connector.celonis.datamodels
         model_option = st.selectbox(
-            "Choose datamodel", models, label_visibility="collapsed")
+            "Choose datamodel", models, format_func=name_of_model)
 
         if model_option is None:
             st.error("Not enough permissions to get models. Change key type!")
 
         else:
-            
+
             columns = columns(model_option, model_option.url)
             end_timestamp = st.selectbox(
-                    "Input end-timestamp column", columns["endtime"], format_func=name_of_col)
+                "Input end-timestamp column", columns["endtime"], format_func=name_of_col)
             resource_col = st.selectbox(
-                    "Input resource column", columns["resource"], format_func=name_of_col)
-               
+                "Input resource column", columns["resource"], format_func=name_of_col)
 
             method_option = st.multiselect(
                 "Choose methods", ("Temporal Profiling", "Resource Profiling", "Log Skeleton", "Anomaly Detection"))
 
             if len(method_option) > 1:
-                combine_method = st.selectbox(label="Combination method", options=["union", "intersection"])
+                combine_method = st.selectbox(label="Combination method", options=[
+                                              "union", "intersection"])
             st.subheader("Parameters")
             tab1, tab2, tab3, tab4 = st.tabs(
                 ["Temporal Profile", "Resource Profile", "Log Skeleton", "Anomaly Detection"])
@@ -173,7 +212,8 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                 noise_treshold = st.number_input(
                     label="Noise-threshold", value=0.2, step=0.1)
             with tab4:
-                param_opti = st.checkbox(label="Hyperparameter Optimization", value=True)
+                param_opti = st.checkbox(
+                    label="Hyperparameter Optimization", value=True)
                 if not param_opti:
                     contamination = st.number_input(
                         label="Contamination", value=0.2, step=0.1)
@@ -182,13 +222,14 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             st.session_state.connector.end_time = None
         else:
             st.session_state.end_time = end_timestamp
-        st.session_state.resource_col = resource_col
+        st.session_state.connector.resource_col = resource_col
+        print(st.session_state.connector.resource_column())
         st.session_state.connector.datamodel = model_option
         if len(method_option) == 0:
             st.error("Please select a method!")
         else:
             success = False
-
+            deviations = []
             st.subheader("Deviations:")
             with st.spinner("Calculating deviations"):
                 if "Temporal Profiling" in method_option:
@@ -196,22 +237,46 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
 
                     df = temporal_deviations(end_timestamp["name"], resource_col["name"],
                                              sigma, deviation_cost, extended_view, model_option.url)
-                    success = True
-                elif "Resource Profiling" in method_option:
+                    deviations.append(df)
+
+                if "Resource Profiling" in method_option:
                     if resource_col["name"] != "":
                         df = resource_deviations(end_timestamp["name"], resource_col["name"],
                                                  time_unit=time_unit, reference_unit=reference_unit,
                                                  min_batch_size=min_batch_size, batch_percentage=batch_percentage, grouped_by_batches=grouped_by_batches, batch_types=batch_types, url=model_option.url
                                                  )
-                        success = True
+                        deviations.append(df)
+
                     else:
                         st.error("Please select a valid resource column!")
+                if "Log Skeleton" in method_option:
+                    df = lsk_deviations(
+                        noise_treshold=noise_treshold, url=model_option.url)
+                    deviations.append(df)
+                if "Anomaly Detection" in method_option:
+                    df = anomaly_deviations(contamination=contamination, param_optimization=param_opti, url=model_option.url,
+                                            endtime=end_timestamp["name"], resource_col=resource_col["name"])
+
+                if len(deviations) == len(method_option):
+                    success = True
+                else:
+                    st.error("Error")
 
             if success:
+                if len(method_option) > 1:
+                    combiner = Combiner(connector=st.session_state.connector)
+                    df = combiner._combine_deviations(
+                        combiner, deviations, how=combine_method, url=model_option.url)
+
                 st.write(f"{df.shape[0]} deviations found")
-                quantile = np.quantile(df["deviation cost"], q=0.75)
-                st.dataframe(df.style.applymap(color_survived, quantile=quantile, subset=['deviation cost']))
-                st.bar_chart(pd.cut(df["deviation cost"],3, labels=["small", "medium", "big"]).value_counts())
+                if method_option == ["Temporal Profiling"]:
+                    quantile = np.quantile(df["deviation cost"], q=0.75)
+                    st.dataframe(df.style.applymap(color_cost,
+                                                   quantile=quantile, subset=['deviation cost']))
+                    st.bar_chart(pd.cut(df["deviation cost"], 3, labels=[
+                        "small", "medium", "big"]).value_counts())
+                else:
+                    st.dataframe(df)
                 csv = convert_df(df)
                 st.download_button(
                     label="Download data as CSV",

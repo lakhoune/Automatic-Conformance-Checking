@@ -71,7 +71,6 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         process_config = self.datamodel.process_configurations[0]
         case_col = process_config.case_column
 
-
         return case_col
 
     def activity_col(self):
@@ -83,6 +82,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         act_col = process_config.activity_column
 
         return act_col
+
     def columns(self):
         process = self.datamodel.process_configurations[0]
         return process.activity_table.columns
@@ -124,7 +124,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
             self.end_time = end_timestamp
 
         if resource_column is not None:
-            self.resource_col = resource_column
+            resource_col = resource_column
 
     def has_end_timestamp(self):
         """
@@ -137,10 +137,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         """returns true if datamodel has resource column
         """
 
-        return self.resource_col is not None
+        return resource_col is not None
 
     def resource_column(self):
-        return self.resource_col
+        return resource_col
 
     def events(self):
         """
