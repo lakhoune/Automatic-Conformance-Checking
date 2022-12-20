@@ -6,4 +6,7 @@ COPY . .
 
 RUN pip install --extra-index-url=https://pypi.celonis.cloud/ .
 
-CMD [ "bash" ]
+RUN echo "[server]\nport=8080" > ~/.streamlit/config.toml
+EXPOSE 8080
+
+CMD [ "streamlit", "run app.py" ]
