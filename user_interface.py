@@ -82,8 +82,7 @@ def anomaly_deviations(contamination, param_optimization, url, endtime, resource
 
 
 @st.experimental_memo(show_spinner=True)
-def _combine_deviations(_combiner, deviations, how, url):
-    print(deviations)
+def _combine_deviations(_combiner, deviations, how, url, params):
     df = combiner.combine_deviations(deviations=deviations, how=how)
     return df
 
@@ -266,8 +265,12 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
     if st.session_state.success:
         if len(method_option) > 1:
             combiner = Combiner(connector=st.session_state.connector)
+            # just for caching
+            params = [sigma, deviation_cost, extended_view, time_unit,
+                      reference_unit, grouped_by_batches, batch_percentage, batch_types,
+                      min_batch_size, noise_treshold, param_opti, contamination]
             df = _combine_deviations(
-                combiner, st.session_state.deviations, how=combine_method, url=model_option.url)
+                combiner, st.session_state.deviations, how=combine_method, url=model_option.url, params=params)
         else:
             df = list(st.session_state.deviations.values())[0]
 
