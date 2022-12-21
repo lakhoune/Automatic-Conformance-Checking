@@ -13,7 +13,7 @@ properties:
             protocol: TCP
         resources:
           requests:
-            cpu: 8.0
+            cpu: 4.0
             memoryInGB: 16
   imageRegistryCredentials:
     - server: pyinsightscr.azurecr.io
