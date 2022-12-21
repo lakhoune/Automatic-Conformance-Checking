@@ -226,13 +226,13 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
         else:
             st.session_state.end_time = end_timestamp
         st.session_state.connector.resource_col = resource_col["name"]
-        print(st.session_state.connector.resource_column())
+
         st.session_state.connector.datamodel = model_option
         if len(method_option) == 0:
             st.error("Please select a method!")
         else:
             success = False
-            deviations = []
+            deviations = {}
             st.subheader("Deviations:")
             with st.spinner("Calculating deviations"):
                 if "Temporal Profiling" in method_option:
@@ -240,7 +240,10 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
 
                     df = temporal_deviations(end_timestamp["name"], resource_col["name"],
                                              sigma, deviation_cost, extended_view, model_option.url)
-                    deviations.append(df)
+                    # add Temporal Profiling conforms column
+                    df["Temporal Profiling conforms"] = False
+
+                    deviations["Temporal Profiling"] = df
 
                 if "Resource Profiling" in method_option:
                     if resource_col["name"] != "":
@@ -248,19 +251,28 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                                                  time_unit=time_unit, reference_unit=reference_unit,
                                                  min_batch_size=min_batch_size, batch_percentage=batch_percentage, grouped_by_batches=grouped_by_batches, batch_types=batch_types, url=model_option.url
                                                  )
-                        deviations.append(df)
+
+                        # add Resource Profiling conforms column
+                        df["Resource Profiling conforms"] = False
+                        deviations["Resource Profiling"] = df
 
                     else:
                         st.error("Please select a valid resource column!")
                 if "Log Skeleton" in method_option:
                     df = lsk_deviations(noise_treshold, url=model_option.url)
-                    deviations.append(df)
+                    # add Log Skeleton conforms column
+                    df["Log Skeleton conforms"] = False
+                    deviations["Log Skeleton"] = df
+
                 if "Anomaly Detection" in method_option:
 
                     df = anomaly_deviations(contamination=contamination, param_optimization=param_opti, url=model_option.url,
                                             endtime=end_timestamp["name"], resource_col=resource_col["name"])
-                    deviations.append(df)
-                if len(deviations) == len(method_option):
+                    # add Anomaly Detection conforms column
+                    df["Anomaly Detection conforms"] = False
+                    deviations["Anomaly Detection"] = df
+
+                if len(deviations.keys()) == len(method_option):
                     success = True
                 else:
                     st.error("Error")
