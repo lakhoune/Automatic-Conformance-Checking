@@ -1,13 +1,4 @@
-# Automatic Conformance Checking insights in Celonis
-
-Create a interactive visualization.
-
-## Install Streamlit
-
-### Prerequisites
-
-- Python 3.7 - Python 3.10
-- PIP
+# Automatic-Conformance-Checking
 
 We developed the library **pyinsights** to get automatic conformance checking insights on business processes.
 We aim at a seamless integration with one of the leading process mining tools [Celonis](https://www.celonis.com/).
@@ -23,13 +14,17 @@ We aim at a seamless integration with one of the leading process mining tools [C
 
 ## Install
 
+
 Just do
+
 
 ```sh
 pip install --extra-index-url=https://pypi.celonis.cloud/ .
 ```
 
+
 and pip will take care of the rest!
+
 
 ## Usage Examples
 
@@ -137,6 +132,21 @@ skeleton = LogSkeleton(connector)
 # get lsk as pm4py-conforming dict
 lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)```
 ```
+### Anomaly Detection Example
+
+Pyinsights can identify anomalous cases based on IsolationForests.
+
+```python
+from pyinsights.ml import anomaly_detection
+
+connector.set_parameters(model_id=id, end_timestamp="END_DATE")
+anomaly_detection(connector=connector)
+```
+
+<p align="center">
+  <img width="" src="docs/images/anomaly_ex.PNG" />
+</p>
+
 ### Anomaly Detection Example
 
 Pyinsights can identify anomalous cases based on IsolationForests.

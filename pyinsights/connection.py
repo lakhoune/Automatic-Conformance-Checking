@@ -26,11 +26,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         self.api_token = api_token
         self.url = url
         self.key_type = key_type
+        self.resource_col = None
 
         global end_time
-        global resource_col
         end_time = None
-        resource_col = None
 
         try:
             self.celonis = get_celonis(
@@ -71,7 +70,6 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         process_config = self.datamodel.process_configurations[0]
         case_col = process_config.case_column
 
-
         return case_col
 
     def activity_col(self):
@@ -83,6 +81,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         act_col = process_config.activity_column
 
         return act_col
+
     def columns(self):
         process = self.datamodel.process_configurations[0]
         return process.activity_table.columns
