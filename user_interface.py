@@ -82,16 +82,8 @@ def anomaly_deviations(contamination, param_optimization, url, endtime, resource
 
 
 @st.experimental_memo(show_spinner=True)
-def anomaly_deviations(contamination, param_optimization, url, endtime, resource_col):
-
-    df = anomaly_detection(st.session_state.connector)
-
-    return df
-
-
-@st.experimental_memo(show_spinner=True)
 def _combine_deviations(_combiner, deviations, how, url):
-
+    print(deviations)
     df = combiner.combine_deviations(deviations=deviations, how=how)
     return df
 
@@ -124,7 +116,7 @@ st.markdown("""<style>
     max-width: initial;
     }
        div.css-1vq4p4l {
-    padding: 0.0rem 2rem 1.5rem;
+    padding: 0.0rem 0.5rem 1.5rem;
     }
 
             </style>""", unsafe_allow_html=True)
@@ -136,7 +128,7 @@ if "success" not in st.session_state:
     st.session_state.success = False
 
 if "deviations" not in st.session_state:
-    st.session_state.deviations = []
+    st.session_state.deviations = {}
 
 if "connector" not in st.session_state:
     with st.form("login"):
@@ -238,7 +230,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             st.error("Please select a method!")
         else:
             st.session_state.success = False
-            st.session_state.deviations = []
+            st.session_state.deviations = {}
             st.subheader("Deviations:")
             with st.spinner("Calculating deviations"):
                 if "Temporal Profiling" in method_option:
@@ -246,7 +238,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
 
                     df = temporal_deviations(end_timestamp["name"], resource_col["name"],
                                              sigma, deviation_cost, extended_view, model_option.url)
-                    st.session_state.deviations.append(df)
+                    st.session_state.deviations["Temporal Profiling"] = df
 
                 if "Resource Profiling" in method_option:
                     if resource_col["name"] != "":
@@ -254,19 +246,19 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                                                  time_unit=time_unit, reference_unit=reference_unit,
                                                  min_batch_size=min_batch_size, batch_percentage=batch_percentage, grouped_by_batches=grouped_by_batches, batch_types=batch_types, url=model_option.url
                                                  )
-                        st.session_state.deviations.append(df)
+                        st.session_state.deviations["Resource Profiling"] = df
 
                     else:
                         st.error("Please select a valid resource column!")
                 if "Log Skeleton" in method_option:
                     df = lsk_deviations(noise_treshold, url=model_option.url)
-                    st.session_state.deviations.append(df)
+                    st.session_state.deviations["Log Skeleton"] = df
                 if "Anomaly Detection" in method_option:
 
                     df = anomaly_deviations(contamination=contamination, param_optimization=param_opti, url=model_option.url,
                                             endtime=end_timestamp["name"], resource_col=resource_col["name"])
-                    st.session_state.deviations.append(df)
-                if len(st.session_state.deviations) == len(method_option):
+                    st.session_state.deviations["Anomaly Detection"] = df
+                if len(st.session_state.deviations.keys()) == len(method_option):
                     st.session_state.success = True
                 else:
                     st.error("Error")
@@ -277,7 +269,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             df = _combine_deviations(
                 combiner, st.session_state.deviations, how=combine_method, url=model_option.url)
         else:
-            df = st.session_state.deviations[0]
+            df = list(st.session_state.deviations.values())[0]
 
         st.write(f"{len(df)} deviations found")
         if "deviation cost" in list(df.columns):
