@@ -19,7 +19,7 @@ pm4py = "^2.3.2"
 scikit-learn = "^1.2"
 prince = "^0.7.1"
 tqdm = "^4.61.1"
-streamlit-aggrid = "^0.2.3"
+streamlit-aggrid = "^0.3.0"
 
 [[tool.poetry.source]]
 name = "pycelonis"

@@ -10,6 +10,7 @@ RUN apt-get update && DEBIAN_FRONTEND=“noninteractive” apt-get install -y --
        python3-certbot-nginx \
        sudo \
        cifs-utils \
+       git \
        && \
     rm -rf /var/lib/apt/lists/*
 RUN apt-get update && apt-get -y install cron
@@ -19,12 +20,13 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN pip install --extra-index-url=https://pypi.celonis.cloud/ .
+RUN pip install --extra-index-url=https://pypi.celonis.cloud/ -r requirements.txt
 
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
 USER root
 RUN chmod a+x run.sh
+RUN sed -i -e 's/\r$//' run.sh
 CMD ["./run.sh"]
 
