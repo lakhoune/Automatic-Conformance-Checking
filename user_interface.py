@@ -175,7 +175,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                 "Input resource column", columns["resource"], format_func=name_of_col)
 
             method_option = st.multiselect(
-                "Choose methods", ("Temporal Profiling", "Resource Profiling", "Log Skeleton", "Anomaly Detection"))
+                "Choose methods", ("Temporal Profiling", "Resource Profiling", "Log Skeleton", "Anomaly Detection"), default=["Temporal Profiling", "Resource Profiling", "Log Skeleton", "Anomaly Detection"])
 
             if len(method_option) > 1:
                 combine_method = st.selectbox(label="Combination method", options=[
