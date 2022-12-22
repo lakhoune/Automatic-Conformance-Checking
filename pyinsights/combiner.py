@@ -51,14 +51,16 @@ class Combiner:
         """
         deviations_df = deviations.copy()
 
-        result = pd.DataFrame(columns=[case_col, act_col, timestamp])
+        initial_cols = [case_col, act_col, timestamp]
+
+        result = pd.DataFrame(columns=initial_cols)
         # prepare dataframes
         for method, df in deviations_df.items():
             if df.empty:
                 continue
             if how == "union":
                 # these columns are used to check which method detected the deviation
-                conformance_cols = ["detected by " +
+                deviation_cols = ["detected by " +
                                     method for method in deviations_df.keys()]
 
                 if "source" in list(df.columns.values):
@@ -66,12 +68,11 @@ class Combiner:
                         axis=1, func=lambda x: f""" {x["source"]} -> {x["target"]}""")  # transform source and target to one column
 
                 # set deviation column true for method
-                df[conformance_cols] = False
+                df[deviation_cols] = False
                 df["detected by " + method] = True
 
                 # final columns of dataframe that is returned
-                final_columns = [case_col, act_col,
-                                 timestamp] + conformance_cols
+                final_columns = initial_cols + deviation_cols
                 columns_to_drop = [col for col in list(
                     df.columns.values) if col not in final_columns]  # drop all columns that are not needed
 
@@ -90,7 +91,7 @@ class Combiner:
                 result = pd.concat(
                     [result, df], join="outer", ignore_index=True)  # outer join
 
-            result[conformance_cols] = result[conformance_cols].fillna(
+            result[deviation_cols] = result[deviation_cols].fillna(
                 value=False)  # fills empty cells with False (not detected)
         elif how == "intersection":
             result = list(deviations_df.values())[0]
