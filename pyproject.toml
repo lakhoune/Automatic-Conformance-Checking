@@ -23,7 +23,6 @@ prince = "^0.7.1"
 [[tool.poetry.source]]
 name = "pycelonis"
 url = "https://pypi.celonis.cloud/"
-default = false
 secondary = true
 
 [build-system]

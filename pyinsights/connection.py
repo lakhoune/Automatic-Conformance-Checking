@@ -26,11 +26,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         self.api_token = api_token
         self.url = url
         self.key_type = key_type
+        self.resource_col = None
 
         global end_time
-        global resource_col
         end_time = None
-        resource_col = None
 
         try:
             self.celonis = get_celonis(
@@ -42,7 +41,7 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         except Exception as e:
             self.celonis = None
             print(e)
-            print("celonis error")
+            raise Exception
 
     def connect(self):
         """
@@ -70,8 +69,6 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
 
         process_config = self.datamodel.process_configurations[0]
         case_col = process_config.case_column
-        act_col = process_config.activity_column
-        timestamp = process_config.timestamp_column
 
         return case_col
 
@@ -84,6 +81,10 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         act_col = process_config.activity_column
 
         return act_col
+
+    def columns(self):
+        process = self.datamodel.process_configurations[0]
+        return process.activity_table.columns
 
     def end_timestamp(self):
         """
@@ -116,7 +117,9 @@ provides datamodel, activity_table, case_col, activity_col, timestamp
         if model_id is not None:
             self.datamodel = self.celonis.get_datamodel(model_id)
 
-        if end_timestamp is not None:
+        if end_timestamp == "":
+            self.end_time = None
+        elif end_timestamp is not None:
             self.end_time = end_timestamp
 
         if resource_column is not None:

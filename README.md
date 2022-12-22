@@ -13,12 +13,15 @@ We aim at a seamless integration with one of the leading process mining tools [C
 - plotly
 
 ## Install
+
 Just do
+
 ```sh
-pip install --extra-index-url=https://pypi.celonis.cloud/ pycelonis=="1.7.3"
-pip install .
+pip install --extra-index-url=https://pypi.celonis.cloud/ .
 ```
+
 and pip will take care of the rest!
+
 ## Usage Examples
 
 ### Resource Profiling Example
@@ -117,14 +120,15 @@ identify deviating cases based on it.
 
 Pyinsights can compute the log skeleton of a log.
 
-```python
+````python
 from pyinsights.log_skeleton import LogSkeleton
 
 skeleton = LogSkeleton(connector)
 
 # get lsk as pm4py-conforming dict
 lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)```
-```
+````
+
 ### Anomaly Detection Example
 
 Pyinsights can identify anomalous cases based on IsolationForests.
