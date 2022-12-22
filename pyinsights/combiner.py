@@ -57,17 +57,24 @@ class Combiner:
             if df.empty:
                 continue
             if how == "union":
-                conformance_cols = [
-                    method + " conforms" for method in deviations_df.keys()]  # these columns are used to check if the entry conforms to the given method
+                # these columns are used to check which method detected the deviation
+                conformance_cols = ["detected by " +
+                                    method for method in deviations_df.keys()]
+
                 if "source" in list(df.columns.values):
                     df.loc[:, act_col] = df.apply(
                         axis=1, func=lambda x: f""" {x["source"]} -> {x["target"]}""")  # transform source and target to one column
+
+                # set deviation column true for method
+                df[conformance_cols] = False
+                df["detected by " + method] = True
 
                 # final columns of dataframe that is returned
                 final_columns = [case_col, act_col,
                                  timestamp] + conformance_cols
                 columns_to_drop = [col for col in list(
                     df.columns.values) if col not in final_columns]  # drop all columns that are not needed
+
             else:
                 if "source" not in list(df.columns.values) and act_col in list(df.columns.values):
                     df.loc[:, "source"] = df.loc[:, act_col]
@@ -82,8 +89,9 @@ class Combiner:
             for method, df in deviations_df.items():
                 result = pd.concat(
                     [result, df], join="outer", ignore_index=True)  # outer join
+
             result[conformance_cols] = result[conformance_cols].fillna(
-                value=True)  # fills empty cells with True (conforms)
+                value=False)  # fills empty cells with False (not detected)
         elif how == "intersection":
             result = list(deviations_df.values())[0]
             for i in range(1, len(deviations_df.values())):

@@ -5,6 +5,7 @@ from tqdm import tqdm
 import math
 import pandas as pd
 
+
 class LogSkeleton:
     """
     Class for log skeleton analysis.
@@ -747,7 +748,6 @@ class LogSkeleton:
                 aa_all_cases[index].add(pair)
 
         return aa_all_cases
-
 
     def _get_never_together_per_case(self, case_id=None):
         """

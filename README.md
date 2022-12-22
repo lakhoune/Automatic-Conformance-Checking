@@ -14,17 +14,13 @@ We aim at a seamless integration with one of the leading process mining tools [C
 
 ## Install
 
-
 Just do
-
 
 ```sh
 pip install --extra-index-url=https://pypi.celonis.cloud/ .
 ```
 
-
 and pip will take care of the rest!
-
 
 ## Usage Examples
 
@@ -124,28 +120,14 @@ identify deviating cases based on it.
 
 Pyinsights can compute the log skeleton of a log.
 
-```python
+````python
 from pyinsights.log_skeleton import LogSkeleton
 
 skeleton = LogSkeleton(connector)
 
 # get lsk as pm4py-conforming dict
 lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)```
-```
-### Anomaly Detection Example
-
-Pyinsights can identify anomalous cases based on IsolationForests.
-
-```python
-from pyinsights.ml import anomaly_detection
-
-connector.set_parameters(model_id=id, end_timestamp="END_DATE")
-anomaly_detection(connector=connector)
-```
-
-<p align="center">
-  <img width="" src="docs/images/anomaly_ex.PNG" />
-</p>
+````
 
 ### Anomaly Detection Example
 
