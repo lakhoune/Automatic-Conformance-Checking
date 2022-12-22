@@ -427,7 +427,7 @@ class LogSkeleton:
 
         return directly_follows
 
-    def get_conformance(self, noise_threshold=0, cases_to_compare=None):
+    def get_non_conforming_cases(self, noise_threshold=0, cases_to_compare=None):
         """
         Checks for each trace in the log, whether it is fitting or not.
         :return: dataframe with ids of non-conforming cases
