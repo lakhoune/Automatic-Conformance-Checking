@@ -277,12 +277,12 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
         st.write(f"{len(df)} deviations found")
         if "deviation cost" in list(df.columns):
             quantile = np.quantile(df["deviation cost"], q=0.75)
-            st.dataframe(df.style.applymap(color_cost,
-                                           quantile=quantile, subset=['deviation cost']))
+            # st.dataframe(df.style.applymap(color_cost,
+            #                                quantile=quantile, subset=['deviation cost']))
             st.bar_chart(pd.cut(df["deviation cost"], 3, labels=[
                 "small", "medium", "big"]).value_counts())
-        else:
-            st.dataframe(df)
+
+        st.dataframe(df)
         csv = convert_df(df)
         st.download_button(
             label="Download data as CSV",

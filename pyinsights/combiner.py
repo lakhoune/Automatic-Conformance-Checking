@@ -58,10 +58,12 @@ class Combiner:
         for method, df in deviations_df.items():
             if df.empty:
                 continue
+            scoring_cols = [
+                col for col in df.columns.values if "# this" in col or "deviation cost" in col or "anomaly score" in col]
             if how == "union":
                 # these columns are used to check which method detected the deviation
                 deviation_cols = ["detected by " +
-                                    method for method in deviations_df.keys()]
+                                  method for method in deviations_df.keys()]
 
                 if "source" in list(df.columns.values):
                     df.loc[:, act_col] = df.apply(
@@ -72,7 +74,7 @@ class Combiner:
                 df["detected by " + method] = True
 
                 # final columns of dataframe that is returned
-                final_columns = initial_cols + deviation_cols
+                final_columns = initial_cols + deviation_cols + scoring_cols
                 columns_to_drop = [col for col in list(
                     df.columns.values) if col not in final_columns]  # drop all columns that are not needed
 
@@ -99,6 +101,10 @@ class Combiner:
                 df = list(deviations_df.values())[i]
                 temp_cols = [case_col, timestamp] if timestamp in df.columns else [
                     case_col]
+
+                # temp_cols = temp_cols + \
+                #     [col for col in df.columns.values if col not in scoring_cols]
+
                 result[temp_cols] = result[result[temp_cols].isin(
                     df[temp_cols])].dropna(how='all')[temp_cols]  # intersection
                 result.dropna(inplace=True)
