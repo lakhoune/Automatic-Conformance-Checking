@@ -95,6 +95,9 @@ class Combiner:
 
             result[deviation_cols] = result[deviation_cols].fillna(
                 value=False)  # fills empty cells with False (not detected)
+
+            result[initial_cols] = result[initial_cols].fillna(
+                "-")  # fills empty cells with "-"
         elif how == "intersection":
             result = list(deviations_df.values())[0]
             for i in range(1, len(deviations_df.values())):
