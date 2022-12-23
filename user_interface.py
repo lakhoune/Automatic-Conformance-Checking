@@ -180,43 +180,66 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             if len(method_option) > 1:
                 combine_method = st.selectbox(label="Combination method", options=[
                                               "union", "intersection"])
-            st.subheader("Parameters")
-            tab1, tab2, tab3, tab4 = st.tabs(
-                ["Temporal Profile", "Resource Profile", "Log Skeleton", "Anomaly Detection"])
-            with tab1:
-                col1, col2 = st.columns(2)
-                with col1:
-                    sigma = st.number_input(label="Sigma", value=6)
-                with col2:
-                    deviation_cost = st.checkbox("Deviation cost", value=True)
-                    extended_view = st.checkbox("Extended view", value=True)
+            sigma, deviation_cost, extended_view, time_unit, reference_unit, grouped_by_batches, batch_percentage, batch_types, min_batch_size, noise_treshold, param_opti, contamination = None, None, None, None, None, None, None, None, None, None, None, None
+            if len(method_option) > 0:
+                st.subheader("Parameters")
+                method_tabs = [t for t in ["Temporal Profiling", "Resource Profiling",
+                                           "Log Skeleton", "Anomaly Detection"] if t in method_option]
+                view_tabs = st.tabs(method_tabs)
+                i = 0
+                if "Temporal Profiling" in method_option:
+                    tab1 = view_tabs[i]
+                    i = i+1
+                    with tab1:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            sigma = st.number_input(label="Sigma", value=6)
+                        with col2:
+                            deviation_cost = st.checkbox(
+                                "Deviation cost", value=True)
+                            extended_view = st.checkbox(
+                                "Extended view", value=True)
 
-            with tab2:
-                col1, col2 = st.columns(2)
+                if "Resource Profiling" in method_option:
+                    tab2 = view_tabs[i]
+                    i = i+1
+                    with tab2:
+                        col1, col2 = st.columns(2)
 
-                with col1:
-                    time_unit = st.selectbox(
-                        "Time unit", ["SECONDS", "MINUTES", "HOURS", "DAY", "MONTH"], index=2)
-                    reference_unit = st.selectbox(
-                        "Reference unit", ["MINUTES", "HOURS", "DAY", "MONTH", None], index=4)
-                    min_batch_size = st.number_input(
-                        label="Min batch size", value=8)
+                        with col1:
+                            time_unit = st.selectbox(
+                                "Time unit", ["SECONDS", "MINUTES", "HOURS", "DAY", "MONTH"], index=2)
+                            reference_unit = st.selectbox(
+                                "Reference unit", ["MINUTES", "HOURS", "DAY", "MONTH", None], index=4)
+                            min_batch_size = st.number_input(
+                                label="Min batch size", value=8)
 
-                with col2:
-                    batch_percentage = st.number_input(
-                        label="Batch percentage", value=0.1, step=0.1)
-                    grouped_by_batches = st.selectbox("Grouped", [True, False])
-                    batch_types = st.selectbox("Batch types", [True, False])
-            with tab3:
-                noise_treshold = st.number_input(
-                    label="Noise-threshold", value=0.2, step=0.1)
-            with tab4:
-                param_opti = st.checkbox(
-                    label="Hyperparameter Optimization", value=True)
-                contamination = "auto"
-                if not param_opti:
-                    contamination = st.number_input(
-                        label="Contamination", value=0.2, step=0.1)
+                        with col2:
+                            batch_percentage = st.number_input(
+                                label="Batch percentage", value=0.1, step=0.1)
+                            grouped_by_batches = st.selectbox(
+                                "Grouped", [True, False])
+                            batch_types = st.selectbox(
+                                "Batch types", [True, False])
+
+                if "Log Skeleton" in method_option:
+                    tab3 = view_tabs[i]
+                    i = i+1
+                    with tab3:
+                        noise_treshold = st.number_input(
+                            label="Noise-threshold", value=0.2, step=0.1)
+
+                if "Anomaly Detection" in method_option:
+                    tab4 = view_tabs[i]
+                    i = i+1
+                    with tab4:
+                        param_opti = st.checkbox(
+                            label="Hyperparameter Optimization", value=True)
+                        contamination = "auto"
+                        if not param_opti:
+                            contamination = st.number_input(
+                                label="Contamination", value=0.2, step=0.1)
+
     if run:
         if st.session_state.connector.end_time == "":
             st.session_state.connector.end_time = None
