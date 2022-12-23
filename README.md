@@ -154,7 +154,7 @@ This returns a data frame with the non conforming cases
 Pyinsights can identify anomalous cases based on IsolationForests.
 
 ```python
-from pyinsights.ml import anomaly_detection
+from pyinsights.anomaly_detection import anomaly_detection
 
 connector.set_parameters(model_id=id, end_timestamp="END_DATE")
 anomaly_detection_df = anomaly_detection(connector=connector)

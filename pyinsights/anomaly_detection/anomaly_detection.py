@@ -1,4 +1,4 @@
-from pyinsights.anonmaly_detection import get_features
+from pyinsights.anomaly_detection import get_features
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import make_scorer, calinski_harabasz_score
