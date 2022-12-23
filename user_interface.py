@@ -7,11 +7,30 @@ from pyinsights.organisational_profiling import ResourceProfiler
 from pyinsights.log_skeleton import LogSkeleton
 from pyinsights.anonmaly_detection import anomaly_detection
 from pyinsights import Combiner
+from sklearn.preprocessing import MinMaxScaler
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn
+import plotly.express as px
 celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
 token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
 
+@st.experimental_memo(show_spinner=False)
+def num_cases(_model, url):
+    # returns number of cases in log
+    activity_table = st.session_state.connector.activity_table()
+    case_col = st.session_state.connector.case_col()
+    # get the number of cases in the log
+    query = PQL()
+    query.add(
+        PQLColumn(name="num", query=f""" COUNT(DISTINCT "{activity_table}"."{case_col}") """))
+    num_cases_df = _model.get_data_frame(query)
+    num_cases = num_cases_df["num"][0]
+
+    return num_cases
+
+
 def logout():
+    # logs out of celonis account
     del st.session_state.connector
 
 
@@ -23,6 +42,7 @@ def convert_df(df):
 
 @st.experimental_memo
 def columns(_model, model_url):
+    # returns columns of datamodel
     model_columns = _model.default_activity_table.columns
     cols = {"endtime": [{'name': ""}] + [x for x in model_columns if x["type"] == "DATE"],
             "resource": [{'name': ""}] + [x for x in model_columns if x["type"] != "DATE"]}
@@ -31,6 +51,7 @@ def columns(_model, model_url):
 
 
 def name_of_col(model):
+    # show only name and type of col
     if model["name"] == "":
         return "None"
     else:
@@ -38,12 +59,13 @@ def name_of_col(model):
 
 
 def name_of_model(model):
+    # show  name of model only
     return model._data["name"]
 
 
-def color_cost(val, quantile):
-    color = 'gray' if val < quantile else 'red'
-    return f'background-color: {color}'
+def highlight_large(s, props=''):
+    # highlight scores above 75 percentile
+    return np.where(s >= 0.75, props, '')
 
 
 @st.experimental_memo
@@ -58,6 +80,7 @@ def set_datamodel(_model, endtime, resource_co, url):
 
 @st.experimental_memo(show_spinner=True)
 def temporal_deviations(endtime, resource_col, simga, deviation_cost, extended_view, url):
+    # compute temporal deviations
     profiler = TemporalProfiler(connector=st.session_state.connector)
     df = profiler.deviating_cases(
         sigma=sigma, extended_view=extended_view, deviation_cost=deviation_cost)
@@ -67,6 +90,7 @@ def temporal_deviations(endtime, resource_col, simga, deviation_cost, extended_v
 
 @st.experimental_memo(show_spinner=True)
 def lsk_deviations(noise_threshold, url):
+    # compute lsk deviations
     lsk = LogSkeleton(connector=st.session_state.connector)
     df = lsk.get_non_conforming_cases(noise_threshold=noise_threshold)
 
@@ -75,20 +99,23 @@ def lsk_deviations(noise_threshold, url):
 
 @st.experimental_memo(show_spinner=True)
 def anomaly_deviations(contamination, param_optimization, url, endtime, resource_col):
-
-    df = anomaly_detection(st.session_state.connector)
+    # compute anomalies
+    df = anomaly_detection(st.session_state.connector,
+                           parameter_optimization=param_optimization, contamination=contamination)
 
     return df
 
 
 @st.experimental_memo(show_spinner=True)
 def _combine_deviations(_combiner, deviations, how, url, params):
+    # combine results
     df = combiner.combine_deviations(deviations=deviations, how=how)
     return df
 
 
 @st.experimental_memo(show_spinner=True)
 def resource_deviations(endtime, resource_col, time_unit, reference_unit, min_batch_size, batch_percentage, grouped_by_batches, batch_types, url):
+    # compute resource deviations
     st.session_state.connector.resource_col = resource_col
 
     if st.session_state.connector.resource_col != None:
@@ -122,13 +149,14 @@ st.markdown("""<style>
 
 st.header("Automatic Conformance Checking Insights")
 
-
+# init
 if "success" not in st.session_state:
     st.session_state.success = False
 
 if "deviations" not in st.session_state:
     st.session_state.deviations = {}
 
+# log in page
 if "connector" not in st.session_state:
     with st.form("login"):
         url = st.text_input("Celonis URL", celonis_url)
@@ -145,7 +173,7 @@ if "connector" not in st.session_state:
             st.error("Couldn't login. Try again")
         st.experimental_rerun()
 
-
+# if logged in
 elif "connector" in st.session_state:
     st.info("""Select a datamodel and the necessary columns on the left sidebar. Then, select your prefered methods and set the necessary parameters.
 After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
@@ -167,7 +195,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             st.error("Not enough permissions to get models. Change key type!")
 
         else:
-
+            # config fields
             columns = columns(model_option, model_option.url)
             end_timestamp = st.selectbox(
                 "Input end-timestamp column", columns["endtime"], format_func=name_of_col)
@@ -217,7 +245,9 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                 if not param_opti:
                     contamination = st.number_input(
                         label="Contamination", value=0.2, step=0.1)
+    # run deviations
     if run:
+        # set vars
         if st.session_state.connector.end_time == "":
             st.session_state.connector.end_time = None
         else:
@@ -231,6 +261,7 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             st.session_state.success = False
             st.session_state.deviations = {}
             st.subheader("Deviations:")
+            # calculate deviations
             with st.spinner("Calculating deviations"):
                 if "Temporal Profiling" in method_option:
                     # sanity check due to bug
@@ -262,7 +293,9 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
                 else:
                     st.error("Error")
 
+    # if successfully calculated deviations
     if st.session_state.success:
+        # combine them if multiple methods selected
         if len(method_option) > 1:
             combiner = Combiner(connector=st.session_state.connector)
             # just for caching
@@ -274,15 +307,43 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
         else:
             df = list(st.session_state.deviations.values())[0]
 
+        # show number of deviations
         st.write(f"{len(df)} deviations found")
-        if "deviation cost" in list(df.columns):
-            quantile = np.quantile(df["deviation cost"], q=0.75)
-            # st.dataframe(df.style.applymap(color_cost,
-            #                                quantile=quantile, subset=['deviation cost']))
-            st.bar_chart(pd.cut(df["deviation cost"], 3, labels=[
-                "small", "medium", "big"]).value_counts())
 
+        # get score cols
+        scoring_cols = [
+            col for col in df.columns.values if "# this" in col or "deviation cost" in col or "anomaly score" in col]
+
+        st.subheader("Deviations")
+        # show pie chart with proportions of deviations
+        num_all_cases = num_cases(
+            st.session_state.connector.datamodel, st.session_state.connector.datamodel.url)
+        case_col = st.session_state.connector.case_col()
+        num_deviations = df[case_col].nunique()
+        fig = px.pie(values=[num_all_cases-num_deviations, num_deviations], names=[
+                     "conforming cases", "non-conforming cases"], title='Proportion of deviations')
+        st.plotly_chart(fig)
+        # show bar chart with deviation scores
+        st.markdown("**Distribution of deviation scores**")
+        if len(scoring_cols) > 0:
+            scaler = MinMaxScaler()
+            df[scoring_cols] = scaler.fit_transform(df[scoring_cols])
+
+            bins = pd.IntervalIndex.from_tuples(
+                [(0, 0.33), (0.33, 0.66), (0.66, 1)])
+            names = ['small', 'medium', 'large']
+
+            for col in scoring_cols:
+                x = pd.cut(df[df[col] != np.nan][col].to_list(), bins)
+                x.categories = names
+                df[col + "_category"] = x
+            st.bar_chart(
+                [df[col + "_category"].value_counts() for col in scoring_cols])
+
+        # show deviations as df
         st.dataframe(df)
+
+        # download df as csv
         csv = convert_df(df)
         st.download_button(
             label="Download data as CSV",
