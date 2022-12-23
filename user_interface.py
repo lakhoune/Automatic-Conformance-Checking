@@ -7,8 +7,25 @@ from pyinsights.organisational_profiling import ResourceProfiler
 from pyinsights.log_skeleton import LogSkeleton
 from pyinsights.ml import anomaly_detection
 from pyinsights import Combiner
+from sklearn.preprocessing import MinMaxScaler
+from pycelonis.celonis_api.pql.pql import PQL, PQLColumn
+import plotly.express as px
 celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
 token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
+
+
+@st.experimental_memo(show_spinner=False)
+def num_cases(_model, url):
+    activity_table = st.session_state.connector.activity_table()
+    case_col = st.session_state.connector.case_col()
+    # get the number of cases in the log
+    query = PQL()
+    query.add(
+        PQLColumn(name="num", query=f""" COUNT(DISTINCT "{activity_table}"."{case_col}") """))
+    num_cases_df = _model.get_data_frame(query)
+    num_cases = num_cases_df["num"][0]
+
+    return num_cases
 
 
 def logout():
@@ -275,13 +292,36 @@ After that, you can just click on 'Get deviations'!""",  icon="ℹ️")
             df = list(st.session_state.deviations.values())[0]
 
         st.write(f"{len(df)} deviations found")
-        if "deviation cost" in list(df.columns):
-            quantile = np.quantile(df["deviation cost"], q=0.75)
-            # st.dataframe(df.style.applymap(color_cost,
-            #                                quantile=quantile, subset=['deviation cost']))
-            st.bar_chart(pd.cut(df["deviation cost"], 3, labels=[
-                "small", "medium", "big"]).value_counts())
 
+        scoring_cols = [
+            col for col in df.columns.values if "# this" in col or "deviation cost" in col or "anomaly score" in col]
+
+        # st.dataframe(df.style.applymap(color_cost,
+        #                                quantile=quantile, subset=['deviation cost']))
+
+        st.subheader("Deviations")
+        num_all_cases = num_cases(
+            st.session_state.connector.datamodel, st.session_state.connector.datamodel.url)
+        case_col = st.session_state.connector.case_col()
+        num_deviations = df[case_col].nunique()
+        fig = px.pie(values=[num_all_cases-num_deviations, num_deviations], names   =[
+                     "conforming cases", "non-conforming cases"], title='Proportion of deviations')
+        st.plotly_chart(fig)
+        st.markdown("**Distribution of deviation scores**")
+        if len(scoring_cols) > 0:
+            scaler = MinMaxScaler()
+            df[scoring_cols] = scaler.fit_transform(df[scoring_cols])
+
+            bins = pd.IntervalIndex.from_tuples(
+                [(0, 0.33), (0.33, 0.66), (0.66, 1)])
+            names = ['small', 'medium', 'large']
+
+            for col in scoring_cols:
+                x = pd.cut(df[df[col] != np.nan][col].to_list(), bins)
+                x.categories = names
+                df[col + "_category"] = x
+            st.bar_chart(
+                [df[col + "_category"].value_counts() for col in scoring_cols])
         st.dataframe(df)
         csv = convert_df(df)
         st.download_button(
