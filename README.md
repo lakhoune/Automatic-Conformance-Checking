@@ -206,10 +206,19 @@ This will run each method that you selected and combine the result into a single
 <img width="" src="docs/images/streamlit/deviationtable.png" />
 You can also export the dataframe as `CSV` by clicking on `Download data as CSV`
 
+
 ## Citations
 
 Pyinsights implements some approaches on conformance checking first suggested in research.
-Some of the paper we used include:
+Some of the papers we used include:
 
 - [Temporal Conformance Checking at Runtime based on Time-infused Process Models](https://arxiv.org/abs/2008.07262)
 - [Log Skeletons: A Classification Approach to Process Discovery](https://arxiv.org/abs/1806.08247)
+
+## Adjustments to Log Skeleton
+During the implementation of the log skeleton according to the definition of the paper, we concluded that their approach is not computationally feasible as the runtime for determining all possible subsets that need to be checked is exponential.
+The authors also acknowledge this fact in their paper.
+
+Thus for our approach, we decided to take a simpler approach. For constructing the log skeleton, we use a `noise_threshold`. Instead of requiring that a particular relation holds for each trace, we require it to hold for `noise_treshold*case_count`.
+
+For computing the deviations, we first calculate the relation for each trace individually. We say that a trace conforms, if there are less than `noise_threshold*case_count` of differences between the relation for the trace and the overall relation for all traces.
