@@ -5,7 +5,7 @@ from pyinsights import Connector
 from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.organisational_profiling import ResourceProfiler
 from pyinsights.log_skeleton import LogSkeleton
-from pyinsights.ml import anomaly_detection
+from pyinsights.anonmaly_detection import anomaly_detection
 from pyinsights import Combiner
 from sklearn.preprocessing import MinMaxScaler
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn
