@@ -10,8 +10,6 @@ from pyinsights import Combiner
 from sklearn.preprocessing import MinMaxScaler
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn
 import plotly.express as px
-celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
-token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
 
 
 @st.experimental_memo(show_spinner=False)
@@ -159,8 +157,8 @@ if "deviations" not in st.session_state:
 # log in page
 if "connector" not in st.session_state:
     with st.form("login"):
-        url = st.text_input("Celonis URL", celonis_url)
-        api_token = st.text_input("Api token", token)
+        url = st.text_input("Celonis URL")
+        api_token = st.text_input("Api token")
         key_type = st.selectbox(
             options=["USER_KEY", "APP_KEY"], label="Key type")
         login = st.form_submit_button("Login")
