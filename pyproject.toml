@@ -18,7 +18,7 @@ scipy = "^1.9.3"
 pm4py = "^2.3.2"
 scikit-learn = "^1.2"
 prince = "^0.7.1"
-
+plotly = "^5.11.0"
 
 [[tool.poetry.source]]
 name = "pycelonis"
