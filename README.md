@@ -108,8 +108,9 @@ identify deviating cases based on it.
     #compute temporal profile (not necessary for next steps)
     temporal_profile = temporal_profiler.temporal_profile()
     # compute deviating cases with deviation cost
-    deviating_cases_df = temporal_profiler.deviating_cases(sigma = 6, extended_view=False)
-    deviating_cases_df
+    df_temporal_profile = temporal_profiler.deviating_cases(sigma = 6, extended_view=False)
+
+    df_temporal_profile
 ```
 
 <p align="center">
@@ -137,7 +138,9 @@ from pyinsights.log_skeleton import LogSkeleton
 skeleton = LogSkeleton(connector)
 
 # get non conforming cases
-df = skeleton.get_non_conforming_cases(noise_threshold=0)
+df_log_skeleton = skeleton.get_non_conforming_cases(noise_threshold=0)
+
+df_log_skeleton
 ````
 
 This returns a data frame with the non conforming cases
@@ -154,12 +157,54 @@ Pyinsights can identify anomalous cases based on IsolationForests.
 from pyinsights.ml import anomaly_detection
 
 connector.set_parameters(model_id=id, end_timestamp="END_DATE")
-anomaly_detection(connector=connector)
+anomaly_detection_df = anomaly_detection(connector=connector)
+
+anomaly_detection_df
 ```
 
 <p align="center">
   <img width="" src="docs/images/anomaly_ex.PNG" />
 </p>
+
+### Combiner
+
+Lastly, each method can be used in combination with all others.
+
+```python
+from pyinsights import Combiner
+
+combiner = Combiner(connector=connector)
+
+deviations = {"Log Skeleton":df_log_skeleton, 
+              "Temporal Profile":df_temporal_profile,
+              "Anomaly Detection":anomaly_detection_df
+              }
+
+df = combiner.combine_deviations(deviations=deviations, how="union")
+
+df
+```
+
+## Web Frontend
+
+The easiest way to interact with our library is to use the frontend, which we developed for it. To get started, run the following command in your Terminal:
+
+```bash
+streamlit run user_interface.py
+```
+
+This will open the web interface in your browser
+<img width="" src="docs/images/streamlit/login.png" />
+Login with your credentials
+<img width="" src="docs/images/streamlit/config.png" />
+In the left tab, you can select your event log and select the end timestamp and resource column.
+You can select which deviation method to select and how you want to combine the results.
+You can also configure the parameters for each method.
+On the main tab, you can now click on `Get deviations`.
+This will run each method that you selected and combine the result into a single data frame. The results should look as follows. (Note that the deviation distribution will only show if you selected the Temporal Profiler)
+<img width="" src="docs/images/streamlit/deviations.png" />
+<img width="" src="docs/images/streamlit/deviationtable.png" />
+You can also export the dataframe as `CSV` by clicking on `Download data as CSV`
 
 ## Citations
 
