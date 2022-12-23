@@ -190,7 +190,7 @@ df
 The easiest way to interact with our library is to use the frontend, which we developed for it. To get started, run the following command in your Terminal:
 
 ```bash
-streamlit run user_interface.py
+streamlit run user_interface.py --theme.base "dark"
 ```
 
 This will open the web interface in your browser
