@@ -20,6 +20,7 @@ scikit-learn = "^1.2"
 prince = "^0.7.1"
 tqdm = "^4.61.1"
 streamlit-aggrid = "^0.3.0"
+plotly = "^5.11.0"
 
 [[tool.poetry.source]]
 name = "pycelonis"
