@@ -1,3 +1,3 @@
 pwd
-echo "Running streamlit on app.py"
+echo "Running streamlit app"
 streamlit run user_interface.py
