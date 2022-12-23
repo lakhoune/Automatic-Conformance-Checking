@@ -9,3 +9,4 @@ pyinsights/temporal_profiling/__pycache__/*
 pyinsights/log_skeleton/pm4py.py
 pyinsights/log_skeleton/main.py
 pyinsights/temporal_profiling/main.py
+**/.DS_Store

@@ -129,6 +129,23 @@ skeleton = LogSkeleton(connector)
 lsk_dict = skeleton.get_log_skeleton(noise_threshold=0)```
 ````
 
+To use the log skeleton for conformance, use the following code
+
+````python
+from pyinsights.log_skeleton import LogSkeleton
+
+skeleton = LogSkeleton(connector)
+
+# get non conforming cases
+df = skeleton.get_non_conforming_cases(noise_threshold=0)
+````
+
+This returns a data frame with the non conforming cases
+
+<p align="center">
+  <img src="docs/images/log_skeleton_example.png" />
+</p>
+
 ### Anomaly Detection Example
 
 Pyinsights can identify anomalous cases based on IsolationForests.
