@@ -1,4 +1,4 @@
-from pyinsights.ml import get_features
+from pyinsights.anonmaly_detection import get_features
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import make_scorer, calinski_harabasz_score
@@ -9,13 +9,13 @@ import numpy as np
 import math
 
 
-def anomaly_detection(connector, parameter_optimization = True, contamination='auto'):
+def anomaly_detection(connector, parameter_optimization=True, contamination='auto'):
     """
     Detects anomalous cases based on isolation forests
     Args:
         connector (pyinsights.Connector): connector
-        parameter_optimization (bool): Wether to use hyperparameter optimization 
-        contamination ('auto' or float): contamination in dataset        
+        parameter_optimization (bool): Wether to use hyperparameter optimization
+        contamination ('auto' or float): contamination in dataset
     Returns:
         pandas.DataFrame: case ids of anomalous cases
     """
@@ -47,7 +47,7 @@ def anomaly_detection(connector, parameter_optimization = True, contamination='a
         tuned_clf = parameter_tuning(42, clf=clf)
     else:
         tuned_clf = clf
-        
+
     tuned_clf.fit(X_pca)
     # filter for anomalies
     feature_df.loc[:, "anomaly score"] = tuned_clf.score_samples(X_pca)
@@ -81,22 +81,22 @@ def parameter_tuning(random_state, clf):
     param_grid = {'n_estimators': list(range(100, 800, 100)),
                   'max_samples': ['auto'],
                   'contamination': [0.1, 0.2, 0.3, 0.4, 0.5],
-                  'max_features': [3,4,5],
+                  'max_features': [3, 4, 5],
                   'bootstrap': [True, False],
                   'n_jobs': [-1, 20, 30]}
 
-
     grid_dt_estimator = model_selection.RandomizedSearchCV(clf,
-                                                     param_grid,
-                                                     scoring=scorer_ch,
-                                                     refit=True,
-                                                     cv=10,
-                                                     return_train_score=False,
-                                                     verbose=2)
+                                                           param_grid,
+                                                           scoring=scorer_ch,
+                                                           refit=True,
+                                                           cv=10,
+                                                           return_train_score=False,
+                                                           verbose=2)
     return grid_dt_estimator
 
+
 def scorer_ch(estimator, X):
-    """score estimated clusters with calinski_harabasz score 
+    """score estimated clusters with calinski_harabasz score
 
     Args:
         estimator (_type_): _description_

@@ -5,7 +5,7 @@ from pyinsights import Connector
 from pyinsights.temporal_profiling import TemporalProfiler
 from pyinsights.organisational_profiling import ResourceProfiler
 from pyinsights.log_skeleton import LogSkeleton
-from pyinsights.ml import anomaly_detection
+from pyinsights.anonmaly_detection import anomaly_detection
 from pyinsights import Combiner
 celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
 token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
