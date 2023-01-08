@@ -22,9 +22,6 @@ COPY . .
 
 RUN pip install --extra-index-url=https://pypi.celonis.cloud/ -r requirements.txt
 
-
-COPY nginx.conf /etc/nginx/nginx.conf
-
 USER root
 RUN chmod a+x run.sh
 RUN sed -i -e 's/\r$//' run.sh
