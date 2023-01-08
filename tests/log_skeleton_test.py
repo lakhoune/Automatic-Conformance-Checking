@@ -33,29 +33,31 @@ class SkeletonTester(unittest.TestCase):
             :return:
             """
         # check directly follows relation for specific case
-        directly_follows_for_case = self.log_skeleton._get_directly_follows(0, case_id="078cf197-ee81-43dd-b233-36f15cca06d4")
+        directly_follows_for_case = self.log_skeleton._get_directly_follows(
+            0, case_id="078cf197-ee81-43dd-b233-36f15cca06d4")
 
         self.assertTrue(directly_follows_for_case == set([('check ticket', 'examine thoroughly'), (
             'decide', 'reject request'), ('examine thoroughly', 'decide'), ('register request', 'check ticket')]))
 
-
     def test_log_skeleton(self):
         celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
         api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
-        model_id = "bf7dfa1e-5e86-470e-9f7c-5672e8b1637f"
-
-        connector = Connector(api_token=api_token, url=celonis_url, key_type="USER_KEY")
+        #model_id = "bf7dfa1e-5e86-470e-9f7c-5672e8b1637f"
+        model_id = "32b0abb8-bbcf-4700-8123-d11443e57bdd"
+        connector = Connector(api_token=api_token,
+                              url=celonis_url, key_type="USER_KEY")
         connector.set_parameters(model_id=model_id)
 
         skeleton = LogSkeleton(connector)
 
         log_skeleton = skeleton.get_log_skeleton()
 
-        expected_skeleton = {'equivalence': {('check ticket', 'decide'), ('decide', 'check ticket')}, 'always_after': {('register request', 'check ticket'), ('examine thoroughly', 'decide'), ('register request', 'decide')}, 'always_before': {('pay compensation', 'examine casually'), ('pay compensation', 'register request'), ('reject request', 'check ticket'), ('pay compensation', 'check ticket'), ('examine thoroughly', 'register request'), ('reject request', 'decide'), ('reject request', 'register request'), ('pay compensation', 'decide')}, 'never_together': {('reject request', 'pay compensation'), ('pay compensation', 'reject request')}, 'directly_follows': set(), 'activ_freq': {'check ticket': {1, 2, 3}, 'decide': {1, 2, 3}, 'examine casually': {0, 1, 3}, 'examine thoroughly': {0, 1}, 'pay compensation': {0, 1}, 'register request': {1}, 'reinitiate request': {0, 1, 2}, 'reject request': {0, 1}}}
-        {('pay compensation', 'examine casually'), ('pay compensation', 'register request'), ('reject request', 'register request'), ('examine thoroughly', 'register request')}
-        
-        
+        expected_skeleton = {'equivalence': set(), 'always_after': {('b', 'c')}, 'always_before': {('b', 'a'), ('c', 'a')},
+                             'never_together': set(), 'directly_follows': set(),
+                             'activ_freq': {'a': {1, 2}, 'b': {0, 1}, 'c': {0, 1}}}
+
         self.assertTrue(log_skeleton == expected_skeleton)
+
 
 if __name__ == '__main__':
     unittest.main()
