@@ -428,31 +428,23 @@ class LogSkeleton:
         Checks for each trace in the log, whether it is fitting or not.
         :return: dataframe with ids of non-conforming cases
         """
-        # get the number of activities in the log
-        query = PQL()
-        query.add(
-            PQLColumn(name="num", query=f""" COUNT(DISTINCT "{activity_table}"."{act_col}") """))
-        num_activities_df = datamodel.get_data_frame(query)
-        num_activities = num_activities_df["num"][0]
-
-        # rescale noise threshold because old one is not practically usable
-        # values based on empirical oberservations
-        noise_threshold_scaled = 0.35 + noise_threshold*0.7
-        lsk = self.get_log_skeleton(noise_threshold_scaled)
-
+        # get lsk
+        lsk = self.get_log_skeleton(noise_threshold)
+        # get lsk per trace
         lsk_compare_traces = self.get_log_skeleton_per_case(
             case_id=cases_to_compare)
 
         # check for each case if relation is subset of lsk
 
         non_conforming = {case for relation in lsk_compare_traces.keys(
-        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk, noise_threshold_scaled, num_activities)}
+        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk)}
 
+        # return non-conforming cases as df
         df = pd.DataFrame(columns=[case_col], data=non_conforming)
 
         return df
 
-    def _conforms(self, lsk_traces, relation, case, lsk, noise_threshold, num_activities):
+    def _conforms(self, lsk_traces, relation, case, lsk):
         """checks if relation of trace conforms to lsk
         Args:
             lsk_traces (_type_): _description_
