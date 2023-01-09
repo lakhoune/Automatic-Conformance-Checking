@@ -2,18 +2,21 @@ import unittest
 import pandas as pd
 from pyinsights import Connector
 from pyinsights.log_skeleton import LogSkeleton
-
+import os
+from dotenv import load_dotenv
 
 class SkeletonTester(unittest.TestCase):
     def setUp(self):
-        self.celonis_url = "https://academic-rastoder-erdzan-rwth-aachen-de.eu-2.celonis.cloud/"
-        self.api_token = "MDVkYWJkOGMtMDQ1OC00Mjc2LTk4ZjEtYzFkYTM5ZTliN2Q2OjA5WnZvUGtqUkNEK1JjUE9lVzMrckNUUm8vbnJ0WXBodmNnK0dCNTJDeDVi"
-        self.key_type = "APP_KEY"
+        load_dotenv()
+        self.celonis_url = os.getenv("URL_ERA")
+        self.api_token = os.getenv("TOKEN_ERA")
+        self.key_type = os.getenv("KEY_TYPE_ERA")
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token,
                               url=self.celonis_url, key_type=self.key_type)
+        running_model = os.getenv("ID_RUNNING_ERA")
         connector.set_parameters(
-            model_id="db5c61d7-fa76-494f-b081-a902a972bc4f")
+            model_id=running_model)
         self.log_skeleton = LogSkeleton(
             connector=connector)
 
@@ -40,12 +43,12 @@ class SkeletonTester(unittest.TestCase):
             'decide', 'reject request'), ('examine thoroughly', 'decide'), ('register request', 'check ticket')]))
 
     def test_log_skeleton(self):
-        celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
-        api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
-        #model_id = "bf7dfa1e-5e86-470e-9f7c-5672e8b1637f"
-        model_id = "32b0abb8-bbcf-4700-8123-d11443e57bdd"
+        celonis_url = os.getenv("URL_CFI")
+        api_token = os.getenv("TOKEN_CFI")
+        key_type = os.getenv("KEY_TYPE_CFI")
+        model_id = os.getenv("ID_DEVIATION_LOG")
         connector = Connector(api_token=api_token,
-                              url=celonis_url, key_type="USER_KEY")
+                              url=celonis_url, key_type=key_type)
         connector.set_parameters(model_id=model_id)
 
         skeleton = LogSkeleton(connector)

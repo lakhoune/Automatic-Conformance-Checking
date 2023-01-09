@@ -1,7 +1,7 @@
 import unittest
-
+from dotenv import load_dotenv
 import pandas as pd
-
+import os
 from pyinsights import Connector
 from pyinsights.anomaly_detection import anomaly_detection
 
@@ -9,9 +9,10 @@ from pyinsights.anomaly_detection import anomaly_detection
 class AnomalyDetectionTest(unittest.TestCase):
 
     def setUp(self):
-
-        self.celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
-        self.api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
+        load_dotenv()
+        self.celonis_url = os.getenv("URL_CFI")
+        self.api_token = os.getenv("TOKEN_CFI")
+        self.key_type = os.getenv("KEY_TYPE_CFI")
 
     def test_anomaly_detection(self):
         """
@@ -20,10 +21,11 @@ class AnomalyDetectionTest(unittest.TestCase):
         """
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token,
-                              url=self.celonis_url, key_type="USER_KEY")
+                              url=self.celonis_url, key_type=self.key_type)
 
+        running_ex_log = os.getenv("ID_RUNNING_CFI")
         connector.set_parameters(
-            model_id="bf7dfa1e-5e86-470e-9f7c-5672e8b1637f", resource_column="org:resource")
+            model_id=running_ex_log, resource_column="org:resource")
 
         # get anomalies
         anomalies = anomaly_detection(

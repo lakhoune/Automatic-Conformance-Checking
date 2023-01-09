@@ -2,12 +2,16 @@ import unittest
 import pandas as pd
 from pyinsights import Connector
 from pyinsights.organisational_profiling import ResourceProfiler
+import os
+from dotenv import load_dotenv
 
 
 class ResourceTester(unittest.TestCase):
     def setUp(self):
-        self.celonis_url = "https://christian-fiedler1-rwth-aachen-de.training.celonis.cloud/"
-        self.api_token = "MzdhNWNlNDItOTJhNC00ZTE1LThlMGMtOTc4MGVmOWNjYjIyOjVTcW8wSlVmbFVkMG84bFZTRUw4bTJDZVNIazVZWlJsZWQ2bTUzbWtLSDJM"
+        load_dotenv()
+        self.celonis_url = os.getenv("URL_CFI")
+        self.api_token = os.getenv("TOKEN_CFI")
+        self.key_type = os.getenv("KEY_TYPE_CFI")
 
     def test_resource_profile(self):
         """
@@ -16,9 +20,10 @@ class ResourceTester(unittest.TestCase):
         """
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token,
-                              url=self.celonis_url, key_type="USER_KEY")
+                              url=self.celonis_url, key_type=self.key_type)
+        deviation_log = os.getenv("ID_DEVIATION_LOG")
         connector.set_parameters(
-            model_id="32b0abb8-bbcf-4700-8123-d11443e57bdd", end_timestamp='end_time', resource_column="Resource")
+            model_id=deviation_log, end_timestamp='end_time', resource_column="Resource")
         # compute resource profile
         profiler = ResourceProfiler(connector=connector)
         resource_profile = profiler.resource_profile(
@@ -46,9 +51,10 @@ class ResourceTester(unittest.TestCase):
         """
         # define connector and connect to celonis
         connector = Connector(api_token=self.api_token,
-                              url=self.celonis_url, key_type="USER_KEY")
+                              url=self.celonis_url, key_type=self.key_type)
+        deviation_log = os.getenv("ID_DEVIATION_LOG")
         connector.set_parameters(
-            model_id="32b0abb8-bbcf-4700-8123-d11443e57bdd", end_timestamp='end_time', resource_column="Resource")
+            model_id=deviation_log, end_timestamp='end_time', resource_column="Resource")
         # compute cases with batches
         profiler = ResourceProfiler(connector=connector)
         cases_df = profiler.cases_with_batches(time_unit="HOURS", reference_unit="DAY", min_batch_size=2,
