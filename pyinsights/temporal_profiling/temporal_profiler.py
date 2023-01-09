@@ -207,9 +207,9 @@ class TemporalProfiler:
 
         # filter all cases with waiting time deviating more than average +- sigma
         # nice example of Pull-up with domain table
-        filter_larger_than_average = f"""( ( {waiting}) > ({avg_waiting} + {sigma} * {std_waiting}) )
+        filter_larger_than_average = f"""( ( {waiting}) >= ({avg_waiting} + {sigma} * {std_waiting}) )
                     OR
-                    ( ( {waiting} ) < ({avg_waiting} - {sigma} * {std_waiting}) )
+                    ( ( {waiting} ) <= ({avg_waiting} - {sigma} * {std_waiting}) )
                     """
 
         # checks if log has end_timestamps and computes statistics on sojourn time
@@ -247,9 +247,9 @@ class TemporalProfiler:
 
             # add deviating sojourn times to filter
             filter_larger_than_average += "OR"
-            filter_larger_than_average += f"""( ( {sojourn}) > ({avg_sojourn} + {sigma} * {std_sojourn}) )
+            filter_larger_than_average += f"""( ( {sojourn}) >= ({avg_sojourn} + {sigma} * {std_sojourn}) )
                     OR
-                    ( ( {sojourn} ) < ({avg_sojourn} - {sigma} * {std_sojourn}) ) """
+                    ( ( {sojourn} ) <= ({avg_sojourn} - {sigma} * {std_sojourn}) ) """
 
         # filter deviations
         query.add(PQLFilter(filter_larger_than_average))

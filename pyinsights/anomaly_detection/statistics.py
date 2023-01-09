@@ -55,8 +55,9 @@ def get_features(connector, concurrent_cases=False):
             df, row[timestamp], row[timestamp]+datetime.timedelta(seconds=row["throughput"]), timestamp), axis=1)
 
     # get workload per case
-    workload_stats = workload(connector)
-    df = df.join(workload_stats, on=case_col, how="left")
+    if connector.has_resource_column():
+        workload_stats = workload(connector)
+        df = df.join(workload_stats, on=case_col, how="left")
 
     df.drop_duplicates(inplace=True)
 
