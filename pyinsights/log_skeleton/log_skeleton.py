@@ -214,6 +214,8 @@ class LogSkeleton:
             query.add(self._get_case_id_filter(case_id))
 
         df = datamodel.get_data_frame(query)
+
+        num_cases = df[case_col].nunique()
         # group by activity
         grouped = df.groupby(by=[act_col], axis=0)
         # get groups as dict
