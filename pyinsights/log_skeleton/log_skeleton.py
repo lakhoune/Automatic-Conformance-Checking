@@ -44,7 +44,6 @@ class LogSkeleton:
         """
         log_skeleton = None
         # Get the extended log
-
         equivalence, always_after, always_before, never_together, directly_follows \
             = self._get_relations(noise_threshold)
 
@@ -179,13 +178,16 @@ class LogSkeleton:
             occ_max = groups_expanded[max]
             occ_min = groups_expanded[min]
 
+            occurrences_max = len(groups_expanded[max])
+
             # get difference betwwen two profiles
+
             differences = occ_max.merge(
                 occ_min, indicator=True, how='left').loc[lambda x: x['_merge'] != 'both']
 
-            # if the two profiles deviate no more than noise * num_cases
+            # if the two profiles deviate no more than noise * size of larger profile
             # they are equivalent
-            if len(differences) <= num_cases*noise_threshold:
+            if len(differences) <= occurrences_max*noise_threshold:
                 equivalence.add(pair)
 
         return equivalence
@@ -244,16 +246,18 @@ class LogSkeleton:
             # fill nas so they don't screw up max
             pos_per_case.fillna(0, inplace=True)
 
+            # length of act1's profile
+            num = groups_expanded[pair[0]][case_col].nunique()
+
             # handling if both activities are the same
             if pair[0] == pair[1]:
                 # if they actually occur more than 1 time in every case --> they are in the relation
-                if np.sum(merged[case_col].value_counts() > 1) >= num_cases*(1-noise_threshold):
+                if np.sum(merged[case_col].value_counts() > 1) >= num*(1-noise_threshold):
                     always_after.add(pair)
             # else test if the last occurrence of act2 is after the last occurrence of act1
-            # in at least (1-noise) percent of cases
-            elif np.sum(pos_per_case["order_x"] <= pos_per_case["order_y"]) >= num_cases*(1-noise_threshold):
+            # in at least (1-noise) percent of times act1 occurs
+            elif np.sum(pos_per_case["order_x"] <= pos_per_case["order_y"]) >= num*(1-noise_threshold):
                 always_after.add(pair)
-
         return always_after
 
     def _get_always_before(self, noise_threshold, case_id=None):
@@ -306,15 +310,17 @@ class LogSkeleton:
             test = grouped.agg({'order_x': 'min',
                                 'order_y': 'min'})
 
+            # length of act1's profile
+            num = groups_expanded[pair[0]][case_col].nunique()
             # handling if both activities are the same
             if pair[0] == pair[1]:
                 # if they actually occur more than 1 time in every case --> they are in the relation
-                if np.sum(merged[case_col].value_counts() > 1) >= num_cases*(1-noise_threshold):
+                if np.sum(merged[case_col].value_counts() > 1) >= num*(1-noise_threshold):
                     always_before.add(pair)
 
             # else test if the first occurrence of act1 is after the first occurrence of act2
             # in more than (1-noise) times act1 occurs
-            elif np.sum(test["order_x"] >= test["order_y"]) >= num_cases*(1-noise_threshold):
+            elif np.sum(test["order_x"] >= test["order_y"]) >= num*(1-noise_threshold):
                 always_before.add(pair)
 
         return always_before
@@ -372,7 +378,7 @@ class LogSkeleton:
             num = len(occ_max)
             # check if smaller profile and larger profile do not occur together
             # more than num_cases * noise
-            if np.sum(occ_max.isin(occ_min)) <= num_cases*(noise_threshold):
+            if np.sum(occ_max.isin(occ_min)) <= num*(noise_threshold):
                 never_together.add(pair)
         return never_together
 
@@ -417,11 +423,8 @@ class LogSkeleton:
         i = 1
         bar = tqdm(total=iterations)
         bar.set_description("Calculating directly-follows")
-        for _, row in edge_table.iterrows():
-            directly_follows.add((row["SOURCE"], row["TARGET"]))
-
-            bar.update(1)
-            i += 1
+        directly_follows = set(
+            edge_table[["SOURCE", "TARGET"]].itertuples(name=None, index=False))
 
         return directly_follows
 
@@ -430,6 +433,8 @@ class LogSkeleton:
         Checks for each trace in the log, whether it is fitting or not.
         :return: dataframe with ids of non-conforming cases
         """
+        events = self.connector.events()
+        num_activities = events[act_col].nunique()
         # get lsk
         lsk = self.get_log_skeleton(noise_threshold)
         # get lsk per trace
@@ -439,21 +444,21 @@ class LogSkeleton:
         # check for each case if relation is subset of lsk
 
         non_conforming = {case for relation in lsk_compare_traces.keys(
-        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk)}
+        ) for case in lsk_compare_traces[relation].keys() if not self._conforms(lsk_compare_traces, relation, case, lsk, noise_threshold, num_activities)}
 
         # return non-conforming cases as df
         df = pd.DataFrame(columns=[case_col], data=non_conforming)
 
         return df
 
-    def _conforms(self, lsk_traces, relation, case, lsk):
+    def _conforms(self, lsk_traces, relation, case, lsk, noise_threshold, num_activities):
         """checks if relation of trace conforms to lsk
+            relaxed problem: the difference between the relations can have up to noise-threshold * number of pairs elements, and still conform
         Args:
             lsk_traces (_type_): _description_
             relation (_type_): _description_
             case (_type_): _description_
             lsk (_type_): _description_
-
         Returns:
             bool: conformity
         """
@@ -461,8 +466,17 @@ class LogSkeleton:
             for act in lsk[relation].keys():
                 if not lsk_traces[relation][case][act].issubset(lsk[relation][act]):
                     return False
+
+        elif relation not in ['equivalence', 'never_together']:
+            num_pairs = num_activities**2
+            difference = lsk_traces[relation][case].difference(lsk[relation])
+            if len(difference) > num_pairs*noise_threshold:
+                return False
         else:
-            if not lsk_traces[relation][case].issubset(lsk[relation]):
+            num_pairs = math.factorial(
+                num_activities) / math.factorial(num_activities-2)
+            difference = lsk_traces[relation][case].difference(lsk[relation])
+            if len(difference) > num_pairs*noise_threshold:
                 return False
         return True
 
@@ -883,9 +897,7 @@ class LogSkeleton:
 
         bar = tqdm(total=iterations)
         bar.set_description("Calculating directly- for cases")
-        for _, row in edge_table.iterrows():
-            df_all_cases[row[case_col]].add((row["SOURCE"], row["TARGET"]))
-
-            bar.update(1)
+        df_all_cases = {case_col: set((source, target)) for (
+            case_col, source, target) in tqdm(edge_table[[case_col, "SOURCE", "TARGET"]].itertuples(name=None, index=False))}
 
         return df_all_cases
