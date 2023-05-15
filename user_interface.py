@@ -11,8 +11,9 @@ from sklearn.preprocessing import MinMaxScaler
 from pycelonis.celonis_api.pql.pql import PQL, PQLColumn
 import plotly.express as px
 
+st.set_page_config(page_title="Automatic Conformance Checking", layout="wide")
 
-@st.experimental_memo(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def num_cases(_model, url):
     # returns number of cases in log
     activity_table = st.session_state.connector.activity_table()
@@ -32,13 +33,13 @@ def logout():
     del st.session_state.connector
 
 
-@st.experimental_memo
+@st.cache_data
 def convert_df(df):
     # IMPORTANT: Cache the conversion to prevent computation on every rerun
     return df.to_csv().encode('utf-8')
 
 
-@st.experimental_memo
+@st.cache_data
 def columns(_model, model_url):
     # returns columns of datamodel
     model_columns = _model.default_activity_table.columns
@@ -66,7 +67,7 @@ def highlight_large(s, props=''):
     return np.where(s >= 0.75, props, '')
 
 
-@st.experimental_memo
+@st.cache_data
 def set_datamodel(_model, endtime, resource_co, url):
     st.session_state.connector.datamodel = _model
     if endtime['name'] == "":
@@ -76,7 +77,7 @@ def set_datamodel(_model, endtime, resource_co, url):
     st.session_state.resource_col = resource_col["name"]
 
 
-@st.experimental_memo(show_spinner=True)
+@st.cache_data(show_spinner=True)
 def temporal_deviations(endtime, resource_col, simga, deviation_cost, extended_view, url):
     # compute temporal deviations
     profiler = TemporalProfiler(connector=st.session_state.connector)
@@ -86,7 +87,7 @@ def temporal_deviations(endtime, resource_col, simga, deviation_cost, extended_v
     return df
 
 
-@st.experimental_memo(show_spinner=True)
+@st.cache_data(show_spinner=True)
 def lsk_deviations(noise_threshold, url):
     # compute lsk deviations
     lsk = LogSkeleton(connector=st.session_state.connector)
@@ -95,7 +96,7 @@ def lsk_deviations(noise_threshold, url):
     return df
 
 
-@st.experimental_memo(show_spinner=True)
+@st.cache_data(show_spinner=True)
 def anomaly_deviations(contamination, param_optimization, url, endtime, resource_col):
     # compute anomalies
     df = anomaly_detection(st.session_state.connector,
@@ -104,14 +105,14 @@ def anomaly_deviations(contamination, param_optimization, url, endtime, resource
     return df
 
 
-@st.experimental_memo(show_spinner=True)
+@st.cache_data(show_spinner=True)
 def _combine_deviations(_combiner, deviations, how, url, params):
     # combine results
     df = combiner.combine_deviations(deviations=deviations, how=how)
     return df
 
 
-@st.experimental_memo(show_spinner=True)
+@st.cache_data(show_spinner=True)
 def resource_deviations(endtime, resource_col, time_unit, reference_unit, min_batch_size, batch_percentage, grouped_by_batches, batch_types, url):
     # compute resource deviations
     st.session_state.connector.resource_col = resource_col
@@ -129,7 +130,7 @@ def resource_deviations(endtime, resource_col, time_unit, reference_unit, min_ba
     return df
 
 
-st.set_page_config(page_title="Automatic Conformance Checking", layout="wide")
+
 
 st.markdown("""<style>
             div.css-18e3th9 {
