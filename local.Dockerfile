@@ -12,4 +12,4 @@ RUN pip install --extra-index-url=https://pypi.celonis.cloud/ .
 RUN dos2unix ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-ENTRYPOINT [ "streamlit run user_interface.py" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
