@@ -1,11 +1,11 @@
 FROM  python:3.9.16-bullseye
 
+ENV PORT 8501
+
 WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get -y install dos2unix
-RUN mkdir ~/.streamlit
-RUN echo "[server]\nport=8501" > ~/.streamlit/config.toml#
-EXPOSE 8501
+EXPOSE $PORT
 EXPOSE 80
 EXPOSE 443
 
